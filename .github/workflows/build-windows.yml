@@ -33,12 +33,14 @@ jobs:
 
       # Publish the update feed (installer + latest.yml + blockmap) to the
       # updates/ folder on main, which the Render static site serves. This
-      # is what electron-updater checks against for auto-updates.
+      # is what electron-updater checks against for auto-updates. Only
+      # touches this platform's own files — the macOS workflow publishes
+      # into the same folder in parallel, so we must not wipe it wholesale.
       - name: Publish update feed
         shell: bash
         run: |
-          rm -rf updates
           mkdir -p updates
+          rm -f updates/*.exe updates/latest.yml updates/*.exe.blockmap
           # Only the NSIS installer + its metadata belong in the update feed
           # (the portable build isn't something electron-updater manages).
           cp dist/*Setup*.exe updates/
@@ -46,10 +48,17 @@ jobs:
           cp dist/*.blockmap updates/
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add updates/
-          if git diff --cached --quiet; then
-            echo "No update feed changes"
-          else
-            git commit -m "Publish update feed for $(node -p "require('./package.json').version") [skip ci]"
-            git push
-          fi
+          for i in 1 2 3 4 5; do
+            git add updates/
+            if git diff --cached --quiet; then
+              echo "No update feed changes"
+              break
+            fi
+            git commit -m "Publish Windows update feed for $(node -p "require('./package.json').version") [skip ci]"
+            if git push; then
+              break
+            fi
+            echo "Push rejected (probably the macOS job pushed first) — rebasing and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done

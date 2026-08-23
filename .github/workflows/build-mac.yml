@@ -1,0 +1,69 @@
+name: Build macOS app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'updates/**'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run build:mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SwiftSend-mac
+          path: |
+            dist/*.dmg
+          if-no-files-found: error
+
+      # Publish the update feed (zip build + latest-mac.yml + blockmap) to
+      # the updates/ folder on main, which the Render static site serves.
+      # Only touches this platform's own files — the Windows workflow
+      # publishes into the same folder in parallel, so we must not wipe it
+      # wholesale.
+      #
+      # Note: this app isn't code-signed/notarized, so electron-updater can
+      # still detect and download a new version on macOS, but the final
+      # "quit and install" step may be blocked by Gatekeeper until the app
+      # is signed with an Apple Developer certificate.
+      - name: Publish update feed
+        shell: bash
+        run: |
+          mkdir -p updates
+          rm -f updates/*-mac.zip updates/latest-mac.yml updates/*-mac.zip.blockmap
+          cp dist/*-mac.zip updates/
+          cp dist/latest-mac.yml updates/
+          cp dist/*-mac.zip.blockmap updates/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          for i in 1 2 3 4 5; do
+            git add updates/
+            if git diff --cached --quiet; then
+              echo "No update feed changes"
+              break
+            fi
+            git commit -m "Publish macOS update feed for $(node -p "require('./package.json').version") [skip ci]"
+            if git push; then
+              break
+            fi
+            echo "Push rejected (probably the Windows job pushed first) — rebasing and retrying..."
+            git fetch origin main
+            git rebase origin/main
+          done
