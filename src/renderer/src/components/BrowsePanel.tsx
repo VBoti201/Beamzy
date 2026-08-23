@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import type { AppConfig, PeerInfo, RemoteEntry } from '../types'
 import { folderIconFor } from '../folderIcon'
 import { FileIcon } from '../icons'
+import FolderDropdown from './FolderDropdown'
 
 export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: AppConfig }): JSX.Element {
   const [folderId, setFolderId] = useState<string | null>(null)
@@ -76,13 +77,7 @@ export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: 
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>Save to:</span>
-        <select className="input" value={destId} onChange={(e) => setDestId(e.target.value)}>
-          {config.sharedFolders.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+        <FolderDropdown options={config.sharedFolders} value={destId} onChange={setDestId} />
       </div>
       <div className="card" style={{ flex: 1, overflowY: 'auto', padding: 8, minHeight: 0 }}>
         <div

@@ -1,5 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { TransferProgress } from '../types'
+
+const AUTO_DISMISS_MS = 5000
 
 function formatBytes(n: number): string {
   if (!n) return '0 B'
@@ -14,8 +17,23 @@ function formatBytes(n: number): string {
 }
 
 export default function TransferTray({ transfers }: { transfers: TransferProgress[] }): JSX.Element | null {
-  const active = transfers.filter((t) => !t.done && !t.error).slice(-5)
-  const recent = transfers.filter((t) => t.done || t.error).slice(-3)
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  const scheduled = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    for (const t of transfers) {
+      if (t.done && !t.error && !scheduled.current.has(t.transferId)) {
+        scheduled.current.add(t.transferId)
+        setTimeout(() => {
+          setDismissed((prev) => new Set(prev).add(t.transferId))
+        }, AUTO_DISMISS_MS)
+      }
+    }
+  }, [transfers])
+
+  const visible = transfers.filter((t) => !dismissed.has(t.transferId))
+  const active = visible.filter((t) => !t.done && !t.error).slice(-5)
+  const recent = visible.filter((t) => t.done || t.error).slice(-3)
   const shown = [...active, ...recent]
   if (shown.length === 0) return null
 
