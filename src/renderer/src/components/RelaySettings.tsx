@@ -24,25 +24,20 @@ export default function RelaySettings({
   relayStatus: RelayStatus
   onChange: (r: RelayConfig) => void
 }): JSX.Element {
-  const [url, setUrl] = useState(relay.url)
   const [codeInput, setCodeInput] = useState(relay.pairId)
   const [busy, setBusy] = useState(false)
   const [pairing, setPairing] = useState(false)
   const [copied, setCopied] = useState(false)
 
-  const apply = async (nextEnabled: boolean, nextUrl: string): Promise<void> => {
+  const toggle = async (): Promise<void> => {
     setBusy(true)
     try {
-      const updated = await window.api.relaySetEnabled({ enabled: nextEnabled, url: nextUrl })
+      const updated = await window.api.relaySetEnabled({ enabled: !relay.enabled, url: relay.url })
       onChange(updated)
       setCodeInput(updated.pairId)
     } finally {
       setBusy(false)
     }
-  }
-
-  const toggle = (): void => {
-    apply(!relay.enabled, url)
   }
 
   const regenerate = async (): Promise<void> => {
@@ -84,22 +79,6 @@ export default function RelaySettings({
 
       {relay.enabled && (
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div>
-            <label style={{ fontSize: 12, color: 'var(--text-dim)' }}>Relay server URL</label>
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <input
-                className="input"
-                style={{ flex: 1 }}
-                placeholder="wss://your-relay.example.com"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
-              <button className="btn secondary" disabled={busy || !url.trim()} onClick={() => apply(relay.enabled, url)}>
-                Connect
-              </button>
-            </div>
-          </div>
-
           <div>
             <label style={{ fontSize: 12, color: 'var(--text-dim)' }}>
               Pairing code — share this with your other device, or paste theirs here to pair with it

@@ -55,6 +55,15 @@ export function ChevronIcon({
   )
 }
 
+export function SidebarToggleIcon({ size = 14, style, color = 'currentColor' }: IconProps): JSX.Element {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <rect x="3" y="4" width="18" height="16" rx="3.5" stroke={color} strokeWidth="1.8" />
+      <path d="M9 4v16" stroke={color} strokeWidth="1.8" />
+    </svg>
+  )
+}
+
 export function GlobeIcon({ size = 12, style, color = 'currentColor' }: IconProps): JSX.Element {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>

@@ -73,10 +73,17 @@ export default function App(): JSX.Element {
     setStage('app')
   }, [])
 
-  const peers: PeerInfo[] = [
-    ...lanPeers.map((p) => ({ ...p, transport: 'lan' as const })),
-    ...relayPeers.map((p) => ({ id: p.deviceId, name: p.name, platform: p.platform, transport: 'relay' as const }))
-  ]
+  const peerMap = new Map<string, PeerInfo>()
+  for (const p of relayPeers) {
+    peerMap.set(p.deviceId, { id: p.deviceId, name: p.name, platform: p.platform, transport: 'relay' as const })
+  }
+  // Same physical device can be reachable via both LAN and relay at once
+  // (e.g. paired devices on the same network) — prefer the direct LAN
+  // entry over the relay one for a given deviceId rather than listing both.
+  for (const p of lanPeers) {
+    peerMap.set(p.id, { ...p, transport: 'lan' as const })
+  }
+  const peers: PeerInfo[] = Array.from(peerMap.values())
 
   return (
     <div className="app-shell">

@@ -30,8 +30,13 @@ export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: 
     setFolderId(null)
     setRelPath('')
     load(null, '')
+    // Reset navigation only when switching to a genuinely different device
+    // (peer.id) — the peer object itself is recreated on every unrelated
+    // app re-render (peer list refreshes, transfer progress, etc.), and
+    // depending on the object reference here would keep bouncing the
+    // browser back to the root mid-navigation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [peer])
+  }, [peer.id])
 
   const openEntry = (e: RemoteEntry): void => {
     if (e.isRoot) {

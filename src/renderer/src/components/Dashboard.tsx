@@ -4,7 +4,7 @@ import PeerList from './PeerList'
 import DeviceView from './DeviceView'
 import TransferTray from './TransferTray'
 import SettingsModal from './SettingsModal'
-import { GearIcon, RadarIcon, ChevronIcon } from '../icons'
+import { GearIcon, RadarIcon, SidebarToggleIcon } from '../icons'
 import type { AppConfig, PeerInfo, RelayStatus, TransferProgress, UpdateStatus } from '../types'
 
 export default function Dashboard({
@@ -28,6 +28,10 @@ export default function Dashboard({
   const [hoverPeek, setHoverPeek] = useState(false)
   const selectedPeer = peers.find((p) => p.id === selectedPeerId) || null
 
+  const SIDEBAR_WIDTH = 280
+  const RAIL_WIDTH = 16
+  const TOGGLE_SIZE = 26
+
   const sidebarContent = (
     <>
       <div className="titlebar-spacer" />
@@ -46,33 +50,48 @@ export default function Dashboard({
           </div>
           <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>This device</div>
         </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          <button className="btn secondary" style={{ padding: '6px 10px' }} onClick={() => setSettingsOpen(true)}>
-            <GearIcon size={16} />
-          </button>
-          <button
-            className="btn secondary"
-            style={{ padding: '6px 10px' }}
-            title="Collapse sidebar"
-            onClick={() => {
-              setSidebarCollapsed(true)
-              setHoverPeek(false)
-            }}
-          >
-            <ChevronIcon size={14} direction="left" />
-          </button>
-        </div>
+        <button className="btn secondary" style={{ padding: '6px 10px', flexShrink: 0 }} onClick={() => setSettingsOpen(true)}>
+          <GearIcon size={16} />
+        </button>
       </div>
       <PeerList peers={peers} selectedId={selectedPeerId} onSelect={setSelectedPeerId} />
     </>
   )
 
   return (
-    <div style={{ display: 'flex', height: '100%' }}>
+    <div style={{ display: 'flex', height: '100%', position: 'relative' }}>
+      <button
+        className="card"
+        title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onClick={() => {
+          setSidebarCollapsed((c) => !c)
+          setHoverPeek(false)
+        }}
+        style={{
+          position: 'absolute',
+          top: 34,
+          left: (sidebarCollapsed ? RAIL_WIDTH : SIDEBAR_WIDTH) - TOGGLE_SIZE / 2,
+          width: TOGGLE_SIZE,
+          height: TOGGLE_SIZE,
+          borderRadius: 10,
+          background: 'var(--bg)',
+          color: 'var(--accent)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          padding: 0,
+          zIndex: 50,
+          boxShadow: '0 4px 14px rgba(0,0,0,0.45)'
+        }}
+      >
+        <SidebarToggleIcon size={14} />
+      </button>
+
       {!sidebarCollapsed && (
         <div
           style={{
-            width: 280,
+            width: SIDEBAR_WIDTH,
             flexShrink: 0,
             borderRight: '1px solid var(--card-border)',
             display: 'flex',
@@ -89,34 +108,31 @@ export default function Dashboard({
           onMouseLeave={() => setHoverPeek(false)}
           style={{
             position: 'relative',
-            width: 16,
+            width: RAIL_WIDTH,
             flexShrink: 0,
             borderRight: '1px solid var(--card-border)',
             cursor: 'pointer'
           }}
         >
           <div className="titlebar-spacer" />
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6, color: 'var(--text-dim)' }}>
-            <ChevronIcon size={12} direction="right" />
-          </div>
           <AnimatePresence>
             {hoverPeek && (
               <motion.div
-                initial={{ x: -280, opacity: 0 }}
+                initial={{ x: -SIDEBAR_WIDTH, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                exit={{ x: -280, opacity: 0 }}
+                exit={{ x: -SIDEBAR_WIDTH, opacity: 0 }}
                 transition={{ duration: 0.18, ease: 'easeOut' }}
                 className="card"
                 style={{
                   position: 'absolute',
-                  top: 0,
-                  left: 16,
-                  bottom: 0,
-                  width: 280,
+                  top: 10,
+                  left: RAIL_WIDTH,
+                  bottom: 10,
+                  width: SIDEBAR_WIDTH,
                   display: 'flex',
                   flexDirection: 'column',
                   zIndex: 40,
-                  borderRadius: 0,
+                  borderRadius: 'var(--radius)',
                   boxShadow: '8px 0 30px rgba(0,0,0,0.5)'
                 }}
               >
