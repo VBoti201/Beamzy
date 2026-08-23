@@ -53,17 +53,24 @@ jobs:
           cp dist/*-mac.zip.blockmap updates/
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          for i in 1 2 3 4 5; do
-            git add updates/
-            if git diff --cached --quiet; then
-              echo "No update feed changes"
-              break
-            fi
+          git add updates/
+          if git diff --cached --quiet; then
+            echo "No update feed changes"
+          else
             git commit -m "Publish macOS update feed for $(node -p "require('./package.json').version") [skip ci]"
-            if git push; then
-              break
-            fi
-            echo "Push rejected (probably the Windows job pushed first) — rebasing and retrying..."
-            git fetch origin main
-            git rebase origin/main
-          done
+            # The commit above only needs to happen once — from here it's
+            # purely about getting it pushed, retrying with a rebase if the
+            # Windows job's own publish commit landed first. Re-running the
+            # add/diff/commit logic after a successful rebase would find
+            # nothing staged (the change is already committed, just not
+            # pushed yet) and skip the push entirely, silently dropping
+            # this platform's update.
+            for i in 1 2 3 4 5; do
+              if git push; then
+                break
+              fi
+              echo "Push rejected (probably the Windows job pushed first) — rebasing and retrying..."
+              git fetch origin main
+              git rebase origin/main
+            done
+          fi
