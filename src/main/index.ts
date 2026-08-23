@@ -31,10 +31,17 @@ let discovery: Discovery | null = null
 let currentPeers: PeerInfo[] = []
 let closeServer: (() => void) | null = null
 
+// mainWindow can be non-null but already destroyed during app quit (e.g.
+// relayClient.disconnect() firing from `before-quit` after the window is
+// torn down) — webContents.send on a destroyed window throws.
+function sendToWindow(channel: string, payload: unknown): void {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
+}
+
 const relayClient = new RelayClient({
-  onPeers: (peers) => mainWindow?.webContents.send('relay:peers-update', peers),
-  onStatus: (status) => mainWindow?.webContents.send('relay:status-update', status),
-  onProgress: (p) => mainWindow?.webContents.send('transfer:progress', p)
+  onPeers: (peers) => sendToWindow('relay:peers-update', peers),
+  onStatus: (status) => sendToWindow('relay:status-update', status),
+  onProgress: (p) => sendToWindow('transfer:progress', p)
 })
 
 function syncRelayClient(cfg: ReturnType<typeof getConfig>): void {
@@ -77,7 +84,7 @@ function createWindow(): void {
 async function bootstrap(): Promise<void> {
   const { port, close } = await startTransferServer({
     onIncomingProgress: (e) =>
-      mainWindow?.webContents.send('transfer:progress', {
+      sendToWindow('transfer:progress', {
         transferId: e.id,
         fileName: e.fileName,
         bytesTransferred: e.bytesTransferred,
@@ -91,13 +98,13 @@ async function bootstrap(): Promise<void> {
   const cfg = getConfig()
   discovery = new Discovery((peers) => {
     currentPeers = peers
-    mainWindow?.webContents.send('peers:update', peers)
+    sendToWindow('peers:update', peers)
   })
   discovery.start(cfg.deviceId, cfg.deviceName || getFriendlySystemName(), port)
 
   syncRelayClient(cfg)
 
-  mainWindow?.webContents.send('app:ready', { port })
+  sendToWindow('app:ready', { port })
 
   startAutoUpdater(() => mainWindow)
 }
@@ -224,10 +231,10 @@ ipcMain.handle(
       const transferId = randomUUID()
       try {
         await pushFile(args.host, args.port, args.folderId, args.destRelPath || '', filePath, transferId, (p) =>
-          mainWindow?.webContents.send('transfer:progress', p)
+          sendToWindow('transfer:progress', p)
         )
       } catch (err) {
-        mainWindow?.webContents.send('transfer:progress', {
+        sendToWindow('transfer:progress', {
           transferId,
           fileName: path.basename(filePath),
           bytesTransferred: 0,
@@ -249,7 +256,7 @@ ipcMain.handle(
     if (!destFolder) throw new Error('Unknown destination folder')
     const transferId = randomUUID()
     await pullFile(args.host, args.port, args.folderId, args.remoteRelPath, destFolder.path, transferId, (p) =>
-      mainWindow?.webContents.send('transfer:progress', p)
+      sendToWindow('transfer:progress', p)
     )
     return true
   }

@@ -14,7 +14,8 @@ let getWindow: (() => BrowserWindow | null) | null = null
 let listenersRegistered = false
 
 function emit(status: UpdateStatus): void {
-  getWindow?.()?.webContents.send('update:status', status)
+  const win = getWindow?.()
+  if (win && !win.isDestroyed()) win.webContents.send('update:status', status)
 }
 
 function registerListeners(): void {

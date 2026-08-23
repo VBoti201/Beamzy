@@ -41,6 +41,13 @@ function safeResolve(root: string, relPath: string): string {
   return resolved
 }
 
+// fs.mkdirSync(dir, { recursive: true }) throws EPERM (not EEXIST) on Windows
+// when `dir` is a drive root like "D:\" that already exists — only create it
+// when it's actually missing.
+function ensureDir(dir: string): void {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+}
+
 interface PendingRequest {
   resolve: (v: unknown) => void
   reject: (e: Error) => void
@@ -49,6 +56,7 @@ interface PendingRequest {
 
 interface PendingPull {
   destDirPath: string
+  fileName: string
   resolve: () => void
   reject: (e: Error) => void
 }
@@ -76,6 +84,7 @@ export class RelayClient {
   private pendingRequests = new Map<string, PendingRequest>()
   private pendingPulls = new Map<string, PendingPull>()
   private incomingWrites = new Map<string, IncomingWrite>()
+  private outgoingPushes = new Map<string, { fileName: string; totalBytes: number }>()
   private url = ''
   private pairId = ''
   private deviceId = ''
@@ -284,7 +293,7 @@ export class RelayClient {
     const pull = this.pendingPulls.get(transferId)
     if (pull) {
       try {
-        fs.mkdirSync(pull.destDirPath, { recursive: true })
+        ensureDir(pull.destDirPath)
         const destFile = path.join(pull.destDirPath, fileName)
         const stream = fs.createWriteStream(destFile)
         this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'pull' })
@@ -305,7 +314,7 @@ export class RelayClient {
     }
     try {
       const destDir = safeResolve(folder.path, relPath)
-      fs.mkdirSync(destDir, { recursive: true })
+      ensureDir(destDir)
       const destFile = safeResolve(destDir, path.basename(fileName))
       const stream = fs.createWriteStream(destFile)
       this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'push' })
@@ -366,11 +375,13 @@ export class RelayClient {
       pull.reject(new Error(message))
       this.pendingPulls.delete(transferId)
     }
+    const outgoingPush = this.outgoingPushes.get(transferId)
+    this.outgoingPushes.delete(transferId)
     this.callbacks.onProgress({
       transferId,
-      fileName: write?.fileName || 'file',
+      fileName: write?.fileName || pull?.fileName || outgoingPush?.fileName || 'file',
       bytesTransferred: write?.bytesTransferred || 0,
-      totalBytes: write?.totalBytes || 0,
+      totalBytes: write?.totalBytes || outgoingPush?.totalBytes || 0,
       direction: write?.direction || 'push',
       error: message
     })
@@ -448,9 +459,19 @@ export class RelayClient {
       const transferId = randomUUID()
       const stat = fs.statSync(filePath)
       const fileName = path.basename(filePath)
+      // Tracked so handleUploadError can report the right file name if the
+      // *receiver* rejects the transfer (e.g. destination not writable) —
+      // that arrives asynchronously, decoupled from streamFileTo's own
+      // promise, which only resolves/rejects based on the local read side.
+      this.outgoingPushes.set(transferId, { fileName, totalBytes: stat.size })
       try {
         await this.streamFileTo(peerId, transferId, filePath, fileName, stat.size, 'push', folderId, destRelPath)
+        // Local streaming finished, but the receiver acks failure (not
+        // success) asynchronously — keep the lookup around briefly in case
+        // a delayed upload-error is still on its way, then let it go.
+        setTimeout(() => this.outgoingPushes.delete(transferId), REQUEST_TIMEOUT_MS)
       } catch (err) {
+        this.outgoingPushes.delete(transferId)
         this.callbacks.onProgress({
           transferId,
           fileName,
@@ -466,7 +487,7 @@ export class RelayClient {
   pullFile(peerId: string, folderId: string, remoteRelPath: string, destDirPath: string): Promise<void> {
     const transferId = randomUUID()
     return new Promise<void>((resolve, reject) => {
-      this.pendingPulls.set(transferId, { destDirPath, resolve, reject })
+      this.pendingPulls.set(transferId, { destDirPath, fileName: path.basename(remoteRelPath), resolve, reject })
       this.sendRelay(peerId, { kind: 'download-request', transferId, folderId, path: remoteRelPath })
       setTimeout(() => {
         if (this.pendingPulls.has(transferId)) {

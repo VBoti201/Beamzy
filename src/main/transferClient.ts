@@ -14,6 +14,13 @@ export interface TransferProgress {
 
 type ProgressCb = (p: TransferProgress) => void
 
+// fs.mkdirSync(dir, { recursive: true }) throws EPERM (not EEXIST) on Windows
+// when `dir` is a drive root like "D:\" that already exists — only create it
+// when it's actually missing.
+function ensureDir(dir: string): void {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+}
+
 export function pushFile(
   host: string,
   port: number,
@@ -81,7 +88,7 @@ export function pullFile(
         const totalBytes = Number(res.headers['content-length'] || 0)
         const fileNameHeader = res.headers['x-file-name'] as string | undefined
         const fileName = fileNameHeader ? decodeURIComponent(fileNameHeader) : path.basename(remoteRelPath)
-        fs.mkdirSync(destDirPath, { recursive: true })
+        ensureDir(destDirPath)
         const destFile = path.join(destDirPath, fileName)
         const writeStream = fs.createWriteStream(destFile)
         let bytesTransferred = 0

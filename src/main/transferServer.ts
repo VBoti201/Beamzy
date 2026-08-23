@@ -24,6 +24,13 @@ function safeResolve(root: string, relPath: string): string {
   return resolved
 }
 
+// fs.mkdirSync(dir, { recursive: true }) throws EPERM (not EEXIST) on Windows
+// when `dir` is a drive root like "D:\" that already exists — only create it
+// when it's actually missing.
+function ensureDir(dir: string): void {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+}
+
 export function startTransferServer(events: ServerEvents = {}): Promise<{ port: number; close: () => void }> {
   const server = http.createServer((req, res) => {
     try {
@@ -130,7 +137,7 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     let destFile: string
     try {
       destDir = safeResolve(folder.path, relPath)
-      fs.mkdirSync(destDir, { recursive: true })
+      ensureDir(destDir)
       destFile = safeResolve(destDir, path.basename(fileName))
     } catch (err) {
       res.writeHead(400)

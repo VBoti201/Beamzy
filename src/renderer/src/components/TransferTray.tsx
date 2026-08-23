@@ -44,7 +44,7 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
 
   useEffect(() => {
     for (const t of transfers) {
-      if (t.done && !t.error && t.transferId !== hoveredId && !timers.current.has(t.transferId) && !dismissed.has(t.transferId)) {
+      if ((t.done || t.error) && t.transferId !== hoveredId && !timers.current.has(t.transferId) && !dismissed.has(t.transferId)) {
         scheduleDismiss(t.transferId)
       }
     }
@@ -93,7 +93,7 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
               }}
               onMouseLeave={() => {
                 setHoveredId((cur) => (cur === t.transferId ? null : cur))
-                if (t.done && !t.error) scheduleDismiss(t.transferId)
+                if (t.done || t.error) scheduleDismiss(t.transferId)
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
