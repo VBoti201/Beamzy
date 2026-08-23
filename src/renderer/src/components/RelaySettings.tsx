@@ -25,7 +25,9 @@ export default function RelaySettings({
   onChange: (r: RelayConfig) => void
 }): JSX.Element {
   const [url, setUrl] = useState(relay.url)
+  const [codeInput, setCodeInput] = useState(relay.pairId)
   const [busy, setBusy] = useState(false)
+  const [pairing, setPairing] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const apply = async (nextEnabled: boolean, nextUrl: string): Promise<void> => {
@@ -33,6 +35,7 @@ export default function RelaySettings({
     try {
       const updated = await window.api.relaySetEnabled({ enabled: nextEnabled, url: nextUrl })
       onChange(updated)
+      setCodeInput(updated.pairId)
     } finally {
       setBusy(false)
     }
@@ -45,6 +48,18 @@ export default function RelaySettings({
   const regenerate = async (): Promise<void> => {
     const updated = await window.api.relayRegenerateCode()
     onChange(updated)
+    setCodeInput(updated.pairId)
+  }
+
+  const pairWithCode = async (): Promise<void> => {
+    setPairing(true)
+    try {
+      const updated = await window.api.relayPair({ code: codeInput })
+      onChange(updated)
+      setCodeInput(updated.pairId)
+    } finally {
+      setPairing(false)
+    }
   }
 
   const copyCode = async (): Promise<void> => {
@@ -52,6 +67,8 @@ export default function RelaySettings({
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }
+
+  const dirty = codeInput.trim().toUpperCase() !== relay.pairId.toUpperCase()
 
   return (
     <div>
@@ -85,7 +102,7 @@ export default function RelaySettings({
 
           <div>
             <label style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-              Pairing code — type this exact code into your other device
+              Pairing code — share this with your other device, or paste theirs here to pair with it
             </label>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <input
@@ -98,12 +115,18 @@ export default function RelaySettings({
                   letterSpacing: 2,
                   textAlign: 'center'
                 }}
-                readOnly
-                value={relay.pairId}
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
               />
-              <button className="btn secondary" onClick={copyCode}>
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
+              {dirty ? (
+                <button className="btn" disabled={pairing || !codeInput.trim()} onClick={pairWithCode}>
+                  {pairing ? 'Pairing…' : 'Pair'}
+                </button>
+              ) : (
+                <button className="btn secondary" onClick={copyCode}>
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              )}
               <button className="btn secondary" onClick={regenerate}>
                 Regenerate
               </button>
