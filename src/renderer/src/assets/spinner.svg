@@ -1,0 +1,33 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE566"/>
+      <stop offset="55%" stop-color="#FFD60A"/>
+      <stop offset="100%" stop-color="#FFB800"/>
+    </linearGradient>
+    <linearGradient id="sg2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF3B0"/>
+      <stop offset="100%" stop-color="#FFD60A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer rotating arc -->
+  <circle cx="128" cy="128" r="96" fill="none" stroke="url(#sg)" stroke-width="18"
+          stroke-linecap="round" stroke-dasharray="176 427">
+    <animateTransform attributeName="transform" type="rotate"
+                      from="0 128 128" to="360 128 128" dur="1.1s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Inner counter-rotating arc -->
+  <circle cx="128" cy="128" r="62" fill="none" stroke="url(#sg2)" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="110 280" opacity="0.85">
+    <animateTransform attributeName="transform" type="rotate"
+                      from="360 128 128" to="0 128 128" dur="1.7s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Pulsing core dot -->
+  <circle cx="128" cy="128" r="11" fill="#FFD60A">
+    <animate attributeName="r" values="9;13;9" dur="1.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.65;1;0.65" dur="1.4s" repeatCount="indefinite"/>
+  </circle>
+</svg>

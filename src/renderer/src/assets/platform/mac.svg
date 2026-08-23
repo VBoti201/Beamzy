@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Mac platform mark: laptop, generic -->
+  <g stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <rect x="146" y="150" width="220" height="150" rx="18"/>
+    <path d="M106 336 h300"/>
+    <path d="M126 336 l14 -22 h232 l14 22"/>
+  </g>
+</svg>

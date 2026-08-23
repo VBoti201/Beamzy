@@ -1,0 +1,122 @@
+import http from 'http'
+import fs from 'fs'
+import path from 'path'
+
+export interface TransferProgress {
+  transferId: string
+  fileName: string
+  bytesTransferred: number
+  totalBytes: number
+  direction: 'push' | 'pull'
+  done?: boolean
+  error?: string
+}
+
+type ProgressCb = (p: TransferProgress) => void
+
+export function pushFile(
+  host: string,
+  port: number,
+  folderId: string,
+  destRelPath: string,
+  localFilePath: string,
+  transferId: string,
+  onProgress: ProgressCb
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const stat = fs.statSync(localFilePath)
+    const baseName = path.basename(localFilePath)
+    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(destRelPath)}&fileName=${encodeURIComponent(baseName)}`
+    const req = http.request(
+      {
+        host,
+        port,
+        path: `/api/upload?${qs}`,
+        method: 'POST',
+        headers: { 'Content-Length': stat.size, 'Content-Type': 'application/octet-stream' }
+      },
+      (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`Upload failed: ${res.statusCode}`))
+          return
+        }
+        res.on('data', () => {})
+        res.on('end', () => {
+          onProgress({ transferId, fileName: baseName, bytesTransferred: stat.size, totalBytes: stat.size, direction: 'push', done: true })
+          resolve()
+        })
+      }
+    )
+    req.on('error', (err) => {
+      onProgress({ transferId, fileName: baseName, bytesTransferred: 0, totalBytes: stat.size, direction: 'push', error: err.message })
+      reject(err)
+    })
+    const readStream = fs.createReadStream(localFilePath)
+    let bytesTransferred = 0
+    readStream.on('data', (chunk: string | Buffer) => {
+      bytesTransferred += chunk.length
+      onProgress({ transferId, fileName: baseName, bytesTransferred, totalBytes: stat.size, direction: 'push' })
+    })
+    readStream.pipe(req)
+  })
+}
+
+export function pullFile(
+  host: string,
+  port: number,
+  folderId: string,
+  remoteRelPath: string,
+  destDirPath: string,
+  transferId: string,
+  onProgress: ProgressCb
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(remoteRelPath)}`
+    http
+      .get({ host, port, path: `/api/download?${qs}` }, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error(`Download failed: ${res.statusCode}`))
+          return
+        }
+        const totalBytes = Number(res.headers['content-length'] || 0)
+        const fileNameHeader = res.headers['x-file-name'] as string | undefined
+        const fileName = fileNameHeader ? decodeURIComponent(fileNameHeader) : path.basename(remoteRelPath)
+        fs.mkdirSync(destDirPath, { recursive: true })
+        const destFile = path.join(destDirPath, fileName)
+        const writeStream = fs.createWriteStream(destFile)
+        let bytesTransferred = 0
+        res.on('data', (chunk: Buffer) => {
+          bytesTransferred += chunk.length
+          onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction: 'pull' })
+        })
+        res.pipe(writeStream)
+        writeStream.on('finish', () => {
+          onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction: 'pull', done: true })
+          resolve()
+        })
+        writeStream.on('error', (err) => {
+          onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction: 'pull', error: err.message })
+          reject(err)
+        })
+      })
+      .on('error', reject)
+  })
+}
+
+export function fetchJson<T>(host: string, port: number, pathAndQuery: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    http
+      .get({ host, port, path: pathAndQuery }, (res) => {
+        let data = ''
+        res.on('data', (c) => (data += c))
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(data))
+          } catch (e) {
+            reject(e)
+          }
+        })
+      })
+      .on('error', reject)
+  })
+}

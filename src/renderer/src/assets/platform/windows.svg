@@ -1,0 +1,9 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- PC platform mark: window panes, generic and trademark-safe -->
+  <g fill="#FFFFFF">
+    <rect x="136" y="136" width="110" height="110" rx="18"/>
+    <rect x="266" y="136" width="110" height="110" rx="18"/>
+    <rect x="136" y="266" width="110" height="110" rx="18"/>
+    <rect x="266" y="266" width="110" height="110" rx="18"/>
+  </g>
+</svg>

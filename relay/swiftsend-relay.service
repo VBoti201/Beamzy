@@ -1,0 +1,22 @@
+[Unit]
+Description=SwiftSend relay server
+After=network.target
+
+[Service]
+Type=simple
+User=swiftsend
+WorkingDirectory=/opt/swiftsend-relay
+ExecStart=/usr/bin/node server.js
+Environment=PORT=8787
+Restart=on-failure
+RestartSec=3
+
+# Light sandboxing — the relay never touches the filesystem beyond its own
+# code, so it can run fully locked down.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

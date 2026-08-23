@@ -1,0 +1,478 @@
+import WebSocket from 'ws'
+import fs from 'fs'
+import path from 'path'
+import { randomUUID } from 'crypto'
+import { getConfig } from './config'
+
+export interface RelayPeer {
+  deviceId: string
+  name: string
+}
+
+export interface RelayTransferProgress {
+  transferId: string
+  fileName: string
+  bytesTransferred: number
+  totalBytes: number
+  direction: 'push' | 'pull'
+  done?: boolean
+  error?: string
+}
+
+interface RemoteEntryLike {
+  name: string
+  path: string
+  isDir: boolean
+  size: number
+  id?: string
+  isRoot?: boolean
+}
+
+const CHUNK_SIZE = 256 * 1024
+const REQUEST_TIMEOUT_MS = 10000
+
+function safeResolve(root: string, relPath: string): string {
+  const normalizedRoot = path.normalize(root)
+  const resolved = path.normalize(path.join(normalizedRoot, relPath || ''))
+  if (resolved !== normalizedRoot && !resolved.startsWith(normalizedRoot + path.sep)) {
+    throw new Error('Path traversal blocked')
+  }
+  return resolved
+}
+
+interface PendingRequest {
+  resolve: (v: unknown) => void
+  reject: (e: Error) => void
+  timer: NodeJS.Timeout
+}
+
+interface PendingPull {
+  destDirPath: string
+  resolve: () => void
+  reject: (e: Error) => void
+}
+
+interface IncomingWrite {
+  stream: fs.WriteStream
+  destFile: string
+  fileName: string
+  totalBytes: number
+  bytesTransferred: number
+  direction: 'push' | 'pull'
+}
+
+export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+
+interface RelayClientCallbacks {
+  onPeers: (peers: RelayPeer[]) => void
+  onProgress: (p: RelayTransferProgress) => void
+  onStatus: (status: RelayStatus) => void
+}
+
+export class RelayClient {
+  private ws: WebSocket | null = null
+  private reconnectTimer: NodeJS.Timeout | null = null
+  private pendingRequests = new Map<string, PendingRequest>()
+  private pendingPulls = new Map<string, PendingPull>()
+  private incomingWrites = new Map<string, IncomingWrite>()
+  private url = ''
+  private pairId = ''
+  private deviceId = ''
+  private deviceName = ''
+  private enabled = false
+
+  constructor(private callbacks: RelayClientCallbacks) {}
+
+  configure(opts: { enabled: boolean; url: string; pairId: string; deviceId: string; deviceName: string }): void {
+    const changed =
+      this.url !== opts.url || this.pairId !== opts.pairId || this.enabled !== opts.enabled || this.deviceName !== opts.deviceName
+    this.url = opts.url
+    this.pairId = opts.pairId
+    this.deviceId = opts.deviceId
+    this.deviceName = opts.deviceName
+    this.enabled = opts.enabled
+
+    if (!changed) return
+    this.disconnect()
+    if (this.enabled && this.url && this.pairId) this.connect()
+  }
+
+  private connect(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    let target: string
+    try {
+      const base = this.url.replace(/\/+$/, '')
+      const qs = `pairId=${encodeURIComponent(this.pairId)}&deviceId=${encodeURIComponent(this.deviceId)}&name=${encodeURIComponent(this.deviceName)}`
+      target = `${base}/ws?${qs}`
+    } catch {
+      this.callbacks.onStatus('error')
+      return
+    }
+
+    this.callbacks.onStatus('connecting')
+    const ws = new WebSocket(target)
+    this.ws = ws
+
+    ws.on('open', () => this.callbacks.onStatus('connected'))
+    ws.on('message', (data) => this.handleMessage(data.toString()))
+    ws.on('close', () => {
+      this.callbacks.onStatus('disconnected')
+      this.callbacks.onPeers([])
+      this.scheduleReconnect()
+    })
+    ws.on('error', () => {
+      this.callbacks.onStatus('error')
+    })
+  }
+
+  private scheduleReconnect(): void {
+    if (!this.enabled || this.reconnectTimer) return
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      if (this.enabled) this.connect()
+    }, 4000)
+  }
+
+  disconnect(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    this.ws?.removeAllListeners()
+    this.ws?.close()
+    this.ws = null
+    this.callbacks.onStatus('disconnected')
+  }
+
+  private sendRelay(to: string, payload: Record<string, unknown>): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
+    this.ws.send(JSON.stringify({ type: 'relay', to, payload }))
+  }
+
+  private request<T>(to: string, payload: Record<string, unknown>): Promise<T> {
+    const requestId = randomUUID()
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.pendingRequests.delete(requestId)
+        reject(new Error('Remote device did not respond in time'))
+      }, REQUEST_TIMEOUT_MS)
+      this.pendingRequests.set(requestId, { resolve: resolve as (v: unknown) => void, reject, timer })
+      this.sendRelay(to, { ...payload, requestId })
+    })
+  }
+
+  private handleMessage(raw: string): void {
+    let msg: { type: string; peers?: RelayPeer[]; from?: string; message?: string; payload?: Record<string, unknown> }
+    try {
+      msg = JSON.parse(raw)
+    } catch {
+      return
+    }
+
+    if (msg.type === 'presence') {
+      this.callbacks.onPeers(msg.peers || [])
+      return
+    }
+    if (msg.type === 'error') {
+      return
+    }
+    if (msg.type !== 'relay' || !msg.from || !msg.payload) return
+
+    const from = msg.from
+    const payload = msg.payload
+    const kind = payload.kind as string
+
+    switch (kind) {
+      case 'targets-request':
+        this.respondTargets(from, payload.requestId as string)
+        return
+      case 'targets-response':
+      case 'list-response':
+        this.resolvePending(payload.requestId as string, payload)
+        return
+      case 'error-response':
+        this.rejectPending(payload.requestId as string, String(payload.message || 'Remote error'))
+        return
+      case 'list-request':
+        this.respondList(from, payload)
+        return
+      case 'upload-start':
+        this.handleUploadStart(from, payload)
+        return
+      case 'upload-chunk':
+        this.handleUploadChunk(payload)
+        return
+      case 'upload-end':
+        this.handleUploadEnd(payload)
+        return
+      case 'upload-error':
+        this.handleUploadError(payload)
+        return
+      case 'download-request':
+        this.respondDownload(from, payload)
+        return
+    }
+  }
+
+  private resolvePending(requestId: string, value: unknown): void {
+    const pending = this.pendingRequests.get(requestId)
+    if (!pending) return
+    clearTimeout(pending.timer)
+    this.pendingRequests.delete(requestId)
+    pending.resolve(value)
+  }
+
+  private rejectPending(requestId: string, message: string): void {
+    const pending = this.pendingRequests.get(requestId)
+    if (!pending) return
+    clearTimeout(pending.timer)
+    this.pendingRequests.delete(requestId)
+    pending.reject(new Error(message))
+  }
+
+  private respondTargets(from: string, requestId: string): void {
+    const cfg = getConfig()
+    const targets = cfg.sharedFolders.filter((f) => f.allowUpload).map((f) => ({ id: f.id, name: f.name }))
+    this.sendRelay(from, { kind: 'targets-response', requestId, targets })
+  }
+
+  private respondList(from: string, payload: Record<string, unknown>): void {
+    const requestId = payload.requestId as string
+    const folderId = (payload.folderId as string) || null
+    const relPath = (payload.path as string) || ''
+    const cfg = getConfig()
+
+    try {
+      if (!folderId) {
+        const roots = cfg.sharedFolders
+          .filter((f) => f.allowBrowse)
+          .map((f) => ({ id: f.id, name: f.name, path: '', isDir: true, isRoot: true, size: 0 }))
+        this.sendRelay(from, { kind: 'list-response', requestId, entries: roots })
+        return
+      }
+      const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowBrowse)
+      if (!folder) throw new Error('Folder not shared')
+      const target = safeResolve(folder.path, relPath)
+      const dirents = fs.readdirSync(target, { withFileTypes: true })
+      const entries: RemoteEntryLike[] = dirents
+        .filter((e) => !e.name.startsWith('.'))
+        .map((e) => {
+          const entryRel = relPath ? `${relPath}/${e.name}` : e.name
+          let size = 0
+          try {
+            size = e.isFile() ? fs.statSync(path.join(target, e.name)).size : 0
+          } catch {
+            size = 0
+          }
+          return { name: e.name, path: entryRel, isDir: e.isDirectory(), size }
+        })
+      this.sendRelay(from, { kind: 'list-response', requestId, entries })
+    } catch (err) {
+      this.sendRelay(from, { kind: 'error-response', requestId, message: err instanceof Error ? err.message : 'List failed' })
+    }
+  }
+
+  private handleUploadStart(from: string, payload: Record<string, unknown>): void {
+    const transferId = payload.transferId as string
+    const fileName = payload.fileName as string
+    const totalBytes = Number(payload.totalBytes || 0)
+
+    const pull = this.pendingPulls.get(transferId)
+    if (pull) {
+      try {
+        fs.mkdirSync(pull.destDirPath, { recursive: true })
+        const destFile = path.join(pull.destDirPath, fileName)
+        const stream = fs.createWriteStream(destFile)
+        this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'pull' })
+      } catch (err) {
+        pull.reject(err instanceof Error ? err : new Error('Failed to start download'))
+        this.pendingPulls.delete(transferId)
+      }
+      return
+    }
+
+    const folderId = payload.folderId as string
+    const relPath = (payload.path as string) || ''
+    const cfg = getConfig()
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowUpload)
+    if (!folder) {
+      this.sendRelay(from, { kind: 'upload-error', transferId, message: 'Destination folder not shared for upload' })
+      return
+    }
+    try {
+      const destDir = safeResolve(folder.path, relPath)
+      fs.mkdirSync(destDir, { recursive: true })
+      const destFile = safeResolve(destDir, path.basename(fileName))
+      const stream = fs.createWriteStream(destFile)
+      this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'push' })
+    } catch (err) {
+      this.sendRelay(from, { kind: 'upload-error', transferId, message: err instanceof Error ? err.message : 'Failed to receive file' })
+    }
+  }
+
+  private handleUploadChunk(payload: Record<string, unknown>): void {
+    const transferId = payload.transferId as string
+    const data = payload.data as string
+    const write = this.incomingWrites.get(transferId)
+    if (!write) return
+    const buf = Buffer.from(data, 'base64')
+    write.stream.write(buf)
+    write.bytesTransferred += buf.length
+    this.callbacks.onProgress({
+      transferId,
+      fileName: write.fileName,
+      bytesTransferred: write.bytesTransferred,
+      totalBytes: write.totalBytes,
+      direction: write.direction
+    })
+  }
+
+  private handleUploadEnd(payload: Record<string, unknown>): void {
+    const transferId = payload.transferId as string
+    const write = this.incomingWrites.get(transferId)
+    if (!write) return
+    write.stream.end(() => {
+      this.callbacks.onProgress({
+        transferId,
+        fileName: write.fileName,
+        bytesTransferred: write.totalBytes,
+        totalBytes: write.totalBytes,
+        direction: write.direction,
+        done: true
+      })
+      const pull = this.pendingPulls.get(transferId)
+      if (pull) {
+        pull.resolve()
+        this.pendingPulls.delete(transferId)
+      }
+      this.incomingWrites.delete(transferId)
+    })
+  }
+
+  private handleUploadError(payload: Record<string, unknown>): void {
+    const transferId = payload.transferId as string
+    const message = String(payload.message || 'Transfer failed')
+    const write = this.incomingWrites.get(transferId)
+    if (write) {
+      write.stream.destroy()
+      this.incomingWrites.delete(transferId)
+    }
+    const pull = this.pendingPulls.get(transferId)
+    if (pull) {
+      pull.reject(new Error(message))
+      this.pendingPulls.delete(transferId)
+    }
+    this.callbacks.onProgress({
+      transferId,
+      fileName: write?.fileName || 'file',
+      bytesTransferred: write?.bytesTransferred || 0,
+      totalBytes: write?.totalBytes || 0,
+      direction: write?.direction || 'push',
+      error: message
+    })
+  }
+
+  private respondDownload(from: string, payload: Record<string, unknown>): void {
+    const transferId = payload.transferId as string
+    const folderId = payload.folderId as string
+    const relPath = (payload.path as string) || ''
+    const cfg = getConfig()
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowBrowse)
+    if (!folder) {
+      this.sendRelay(from, { kind: 'upload-error', transferId, message: 'Folder not shared' })
+      return
+    }
+    let filePath: string
+    let size: number
+    try {
+      filePath = safeResolve(folder.path, relPath)
+      size = fs.statSync(filePath).size
+    } catch (err) {
+      this.sendRelay(from, { kind: 'upload-error', transferId, message: err instanceof Error ? err.message : 'File not found' })
+      return
+    }
+    const fileName = path.basename(filePath)
+    this.streamFileTo(from, transferId, filePath, fileName, size, 'pull', '', '')
+  }
+
+  private async streamFileTo(
+    to: string,
+    transferId: string,
+    filePath: string,
+    fileName: string,
+    totalBytes: number,
+    direction: 'push' | 'pull',
+    destFolderId: string,
+    destRelPath: string
+  ): Promise<void> {
+    this.sendRelay(to, { kind: 'upload-start', transferId, folderId: destFolderId, path: destRelPath, fileName, totalBytes })
+    let bytesTransferred = 0
+    await new Promise<void>((resolve, reject) => {
+      const stream = fs.createReadStream(filePath, { highWaterMark: CHUNK_SIZE })
+      stream.on('data', (chunk: string | Buffer) => {
+        const buf = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
+        bytesTransferred += buf.length
+        this.sendRelay(to, { kind: 'upload-chunk', transferId, data: buf.toString('base64') })
+        this.callbacks.onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction })
+      })
+      stream.on('end', () => {
+        this.sendRelay(to, { kind: 'upload-end', transferId })
+        this.callbacks.onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction, done: true })
+        resolve()
+      })
+      stream.on('error', (err) => {
+        this.sendRelay(to, { kind: 'upload-error', transferId, message: err.message })
+        reject(err)
+      })
+    })
+  }
+
+  isConnected(): boolean {
+    return !!this.ws && this.ws.readyState === WebSocket.OPEN
+  }
+
+  getTargets(peerId: string): Promise<{ id: string; name: string }[]> {
+    return this.request<{ targets: { id: string; name: string }[] }>(peerId, { kind: 'targets-request' }).then((r) => r.targets)
+  }
+
+  listFolder(peerId: string, folderId: string | null, relPath: string): Promise<RemoteEntryLike[]> {
+    return this.request<{ entries: RemoteEntryLike[] }>(peerId, { kind: 'list-request', folderId, path: relPath }).then((r) => r.entries)
+  }
+
+  async push(peerId: string, folderId: string, destRelPath: string, localFilePaths: string[]): Promise<void> {
+    for (const filePath of localFilePaths) {
+      const transferId = randomUUID()
+      const stat = fs.statSync(filePath)
+      const fileName = path.basename(filePath)
+      try {
+        await this.streamFileTo(peerId, transferId, filePath, fileName, stat.size, 'push', folderId, destRelPath)
+      } catch (err) {
+        this.callbacks.onProgress({
+          transferId,
+          fileName,
+          bytesTransferred: 0,
+          totalBytes: stat.size,
+          direction: 'push',
+          error: err instanceof Error ? err.message : 'Send failed'
+        })
+      }
+    }
+  }
+
+  pullFile(peerId: string, folderId: string, remoteRelPath: string, destDirPath: string): Promise<void> {
+    const transferId = randomUUID()
+    return new Promise<void>((resolve, reject) => {
+      this.pendingPulls.set(transferId, { destDirPath, resolve, reject })
+      this.sendRelay(peerId, { kind: 'download-request', transferId, folderId, path: remoteRelPath })
+      setTimeout(() => {
+        if (this.pendingPulls.has(transferId)) {
+          this.pendingPulls.delete(transferId)
+          reject(new Error('Remote device did not respond in time'))
+        }
+      }, 15000)
+    })
+  }
+}

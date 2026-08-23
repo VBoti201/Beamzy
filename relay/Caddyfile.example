@@ -1,0 +1,12 @@
+# Example Caddy config that gives the relay a free, auto-renewing TLS
+# certificate and exposes it as wss://relay.yourdomain.com.
+#
+# Install: https://caddyserver.com/docs/install
+# Usage:   copy this to /etc/caddy/Caddyfile (replace the domain), then
+#          `sudo systemctl restart caddy`
+#
+# Point relay.yourdomain.com's DNS A/AAAA record at this VPS's IP first.
+
+relay.yourdomain.com {
+	reverse_proxy 127.0.0.1:8787
+}

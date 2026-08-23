@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3A3A3F"/>
+      <stop offset="100%" stop-color="#1C1C1F"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4A4A50"/>
+      <stop offset="100%" stop-color="#232327"/>
+    </linearGradient>
+  </defs>
+  <path d="M48 132 a28 28 0 0 1 28-28 h128 l46 46 h184 a28 28 0 0 1 28 28 v224 a28 28 0 0 1-28 28 H76 a28 28 0 0 1-28-28 z" fill="url(#back)"/>
+  <rect x="48" y="192" width="416" height="238" rx="30" fill="url(#front)"/>
+  <rect x="48" y="192" width="416" height="10" fill="#FFFFFF" fill-opacity="0.12"/>
+  <!-- Glyph: download arrow into tray (#FFC300) -->
+  <g stroke="#FFC300" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <line x1="256" y1="212" x2="256" y2="330"/>
+    <polyline points="206,282 256,332 306,282"/>
+    <path d="M164 336 v26 a26 26 0 0 0 26 26 h132 a26 26 0 0 0 26-26 v-26"/>
+  </g>
+</svg>
