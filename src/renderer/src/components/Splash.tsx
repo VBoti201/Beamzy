@@ -5,8 +5,8 @@ export default function Splash(): JSX.Element {
   return (
     <motion.div
       key="splash"
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ duration: 0.4 }}
+      exit={{ opacity: 0, scale: 0.82, filter: 'blur(14px)' }}
+      transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
       style={{
         height: '100%',
         position: 'relative',
@@ -14,7 +14,7 @@ export default function Splash(): JSX.Element {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 20,
+        gap: 18,
         overflow: 'hidden'
       }}
     >
@@ -42,95 +42,32 @@ export default function Splash(): JSX.Element {
         />
       ))}
 
-      <div style={{ position: 'relative', width: 76, height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {[0, 1].map((i) => (
-          <motion.div
-            key={i}
-            initial={{ scale: 1, opacity: 0.5 }}
-            animate={{ scale: 2.1, opacity: 0 }}
-            transition={{ duration: 2.6, repeat: Infinity, ease: 'easeOut', delay: i * 1.3 }}
-            style={{
-              position: 'absolute',
-              width: 76,
-              height: 76,
-              borderRadius: 22,
-              border: '1px solid var(--accent)',
-              pointerEvents: 'none'
-            }}
-          />
-        ))}
-        <motion.div
-          initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
-          animate={{ scale: 1, opacity: 1, rotate: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          style={{
-            position: 'relative',
-            width: 76,
-            height: 76,
-            borderRadius: 22,
-            overflow: 'hidden',
-            background: 'linear-gradient(135deg, #2a2a2e, #070708)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 20px 60px rgba(255,184,0,0.3)'
-          }}
-        >
-          <motion.div
-            initial={{ x: '-120%', y: '-120%' }}
-            animate={{ x: '120%', y: '120%' }}
-            transition={{ duration: 1.8, repeat: Infinity, repeatDelay: 1.4, ease: 'easeInOut' }}
-            style={{
-              position: 'absolute',
-              width: '60%',
-              height: '220%',
-              background: 'linear-gradient(135deg, transparent, rgba(255,230,102,0.35), transparent)',
-              transform: 'rotate(20deg)',
-              pointerEvents: 'none'
-            }}
-          />
-          <motion.svg
-            width="36"
-            height="36"
-            viewBox="0 0 24 24"
-            fill="none"
-            animate={{ x: [0, 4, 0] }}
-            transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <path
-              d="M4 12h13M13 6l6 6-6 6"
-              stroke="var(--accent)"
-              strokeWidth="2.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </motion.svg>
-        </motion.div>
-      </div>
-
       <motion.div
-        initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
-        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-        transition={{ duration: 0.6, delay: 0.25 }}
-        style={{ fontSize: 20, fontWeight: 700, letterSpacing: 0.3 }}
+        initial={{ opacity: 0, scale: 1.35, filter: 'blur(14px)' }}
+        animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.75, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+        style={{
+          fontSize: 52,
+          fontWeight: 800,
+          letterSpacing: -1,
+          lineHeight: 1,
+          background: 'linear-gradient(135deg, #FFE566, var(--accent) 45%, var(--accent-2))',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text'
+        }}
       >
         SwiftSend
       </motion.div>
-      <motion.img
-        src={spinner}
-        alt=""
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.4, delay: 0.45 }}
-        style={{ width: 34, height: 34 }}
-      />
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        style={{ color: 'var(--text-dim)', fontSize: 13 }}
+        transition={{ delay: 0.75, duration: 0.4 }}
+        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 4 }}
       >
-        Discovering devices on the network…
+        <img src={spinner} alt="" style={{ width: 28, height: 28 }} />
+        <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>Discovering devices on the network…</div>
       </motion.div>
     </motion.div>
   )

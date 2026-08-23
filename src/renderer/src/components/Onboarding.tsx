@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { v4 as uuidv4 } from 'uuid'
 import SharedFolderEditor from './SharedFolderEditor'
-import logo from '../assets/logo-dark-bg.svg'
 import type { AppConfig, SharedFolder } from '../types'
 
 export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => void }): JSX.Element {
@@ -67,17 +66,7 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <motion.img
-            src={logo}
-            alt=""
-            style={{ width: 30, height: 30 }}
-            initial={{ scale: 0.7, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.4 }}
-          />
-          <h1 style={{ margin: 0, fontSize: 22 }}>Welcome to SwiftSend</h1>
-        </div>
+        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -0.5 }}>Welcome to SwiftSend</h1>
         <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.5 }}>
           Ultra-fast file transfer between the Mac and Windows machines on your local network.
         </p>

@@ -19,7 +19,7 @@ export default function App(): JSX.Element {
 
   useEffect(() => {
     let mounted = true
-    const minSplash = new Promise((resolve) => setTimeout(resolve, 1100))
+    const minSplash = new Promise((resolve) => setTimeout(resolve, 2000))
     const ready = new Promise<void>((resolve) => {
       const off = window.api.onAppReady(() => {
         off()

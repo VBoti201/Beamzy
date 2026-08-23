@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: swiftsend-relay
+    runtime: docker
+    plan: free
+    rootDir: relay
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production

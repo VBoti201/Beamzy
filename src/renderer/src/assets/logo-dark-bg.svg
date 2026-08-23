@@ -1,41 +1,29 @@
 <svg width="1120" height="280" viewBox="0 0 1120 280" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2A2A2E"/>
-      <stop offset="100%" stop-color="#070708"/>
+      <stop offset="0%" stop-color="#19191b"/>
+      <stop offset="100%" stop-color="#08080a"/>
     </linearGradient>
-    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#FFD60A" stop-opacity="0.28"/>
-      <stop offset="100%" stop-color="#FFB800" stop-opacity="0"/>
-    </radialGradient>
   </defs>
 
   <!-- Mark -->
   <g transform="translate(40,40) scale(0.19531)">
-    <rect x="0" y="0" width="1024" height="1024" rx="230" fill="url(#bg)"/>
-    <rect x="0" y="0" width="1024" height="1024" rx="230" fill="none" stroke="#3A3A40" stroke-width="14"/>
-    <circle cx="512" cy="512" r="360" fill="url(#glow)"/>
-    <g fill="none" stroke="#7A5200" stroke-opacity="0.45" stroke-width="74" stroke-linecap="round">
-      <path d="M 302 462 A 235 235 0 0 1 722 462"/>
-      <path d="M 722 562 A 235 235 0 0 1 302 562"/>
-    </g>
-    <g fill="none" stroke="#FFD60A" stroke-width="72" stroke-linecap="round">
-      <path d="M 302 452 A 235 235 0 0 1 722 452"/>
-      <path d="M 722 572 A 235 235 0 0 1 302 572"/>
-    </g>
-    <g fill="#7A5200" fill-opacity="0.45">
-      <polygon points="752,504 763,431 681,473"/>
-      <polygon points="272,540 261,613 343,571"/>
-    </g>
+    <rect x="72" y="72" width="880" height="880" rx="198" fill="url(#bg)"/>
     <g fill="#FFD60A">
-      <polygon points="752,494 763,421 681,463"/>
-      <polygon points="272,530 261,603 343,561"/>
+      <g transform="translate(575.5,575.5) rotate(-45)">
+        <line x1="-190" y1="0" x2="140" y2="0" stroke="#FFD60A" stroke-width="46" stroke-linecap="round"/>
+        <polygon points="190,0 108,-40 108,40"/>
+      </g>
+      <g transform="translate(448.5,448.5) rotate(135)">
+        <line x1="-190" y1="0" x2="140" y2="0" stroke="#FFD60A" stroke-width="46" stroke-linecap="round"/>
+        <polygon points="190,0 108,-40 108,40"/>
+      </g>
     </g>
   </g>
 
   <!-- Wordmark (for dark backgrounds) -->
   <text x="290" y="158" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Arial, sans-serif"
-        font-size="124" font-weight="800" letter-spacing="-2"><tspan fill="#FFFFFF">Air</tspan><tspan fill="#FFD60A">Bridge</tspan></text>
+        font-size="124" font-weight="800" letter-spacing="-2"><tspan fill="#FFFFFF">Swift</tspan><tspan fill="#FFD60A">Send</tspan></text>
   <text x="294" y="222" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Arial, sans-serif"
-        font-size="44" font-weight="500" fill="#A1A1AA">Mac ⇄ Windows · villámgyors fájlcsere</text>
+        font-size="44" font-weight="500" fill="#A1A1AA">Mac &#8644; Windows &#183; ultra-fast, direct transfer</text>
 </svg>
