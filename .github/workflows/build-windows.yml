@@ -4,6 +4,11 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+    paths-ignore:
+      - 'updates/**'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -25,3 +30,26 @@ jobs:
           path: |
             dist/*.exe
           if-no-files-found: error
+
+      # Publish the update feed (installer + latest.yml + blockmap) to the
+      # updates/ folder on main, which the Render static site serves. This
+      # is what electron-updater checks against for auto-updates.
+      - name: Publish update feed
+        shell: bash
+        run: |
+          rm -rf updates
+          mkdir -p updates
+          # Only the NSIS installer + its metadata belong in the update feed
+          # (the portable build isn't something electron-updater manages).
+          cp dist/*Setup*.exe updates/
+          cp dist/latest.yml updates/
+          cp dist/*.blockmap updates/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add updates/
+          if git diff --cached --quiet; then
+            echo "No update feed changes"
+          else
+            git commit -m "Publish update feed for $(node -p "require('./package.json').version") [skip ci]"
+            git push
+          fi
