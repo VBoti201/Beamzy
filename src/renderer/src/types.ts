@@ -38,6 +38,7 @@ export interface LanPeer {
 export interface RelayPeer {
   deviceId: string
   name: string
+  platform?: string
 }
 
 export interface PeerInfo {

@@ -47,7 +47,11 @@ function roomFor(pairId) {
 function broadcastPresence(pairId) {
   const room = rooms.get(pairId)
   if (!room) return
-  const peers = Array.from(room.entries()).map(([deviceId, info]) => ({ deviceId, name: info.name }))
+  const peers = Array.from(room.entries()).map(([deviceId, info]) => ({
+    deviceId,
+    name: info.name,
+    platform: info.platform
+  }))
   for (const [deviceId, info] of room.entries()) {
     const others = peers.filter((p) => p.deviceId !== deviceId)
     send(info.ws, { type: 'presence', peers: others })
@@ -78,6 +82,7 @@ wss.on('connection', (ws, req) => {
   const pairId = url.searchParams.get('pairId')
   const deviceId = url.searchParams.get('deviceId')
   const name = url.searchParams.get('name') || 'Unknown device'
+  const platform = url.searchParams.get('platform') || ''
 
   if (!pairId || pairId.length < MIN_PAIR_ID_LENGTH || !deviceId) {
     ws.close(4000, 'missing or weak pairId/deviceId')
@@ -85,7 +90,7 @@ wss.on('connection', (ws, req) => {
   }
 
   const room = roomFor(pairId)
-  room.set(deviceId, { ws, name })
+  room.set(deviceId, { ws, name, platform })
   broadcastPresence(pairId)
 
   ws.on('message', (data) => {

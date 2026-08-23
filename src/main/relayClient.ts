@@ -7,6 +7,7 @@ import { getConfig } from './config'
 export interface RelayPeer {
   deviceId: string
   name: string
+  platform?: string
 }
 
 export interface RelayTransferProgress {
@@ -105,7 +106,7 @@ export class RelayClient {
     let target: string
     try {
       const base = this.url.replace(/\/+$/, '')
-      const qs = `pairId=${encodeURIComponent(this.pairId)}&deviceId=${encodeURIComponent(this.deviceId)}&name=${encodeURIComponent(this.deviceName)}`
+      const qs = `pairId=${encodeURIComponent(this.pairId)}&deviceId=${encodeURIComponent(this.deviceId)}&name=${encodeURIComponent(this.deviceName)}&platform=${encodeURIComponent(process.platform)}`
       target = `${base}/ws?${qs}`
     } catch {
       this.callbacks.onStatus('error')

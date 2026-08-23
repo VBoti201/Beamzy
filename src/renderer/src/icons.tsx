@@ -36,6 +36,25 @@ export function CloseIcon({ size = 14, style, color = 'currentColor' }: IconProp
   )
 }
 
+export function ChevronIcon({
+  size = 14,
+  style,
+  color = 'currentColor',
+  direction = 'left'
+}: IconProps & { direction?: 'left' | 'right' }): JSX.Element {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      style={{ transform: direction === 'right' ? 'rotate(180deg)' : undefined, ...style }}
+    >
+      <path d="M15 5l-7 7 7 7" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function GlobeIcon({ size = 12, style, color = 'currentColor' }: IconProps): JSX.Element {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>

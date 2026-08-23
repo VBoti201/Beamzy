@@ -87,8 +87,15 @@ export default function PeerList({
             <div style={{ minWidth: 0 }}>
               <div
                 style={{
-                  fontWeight: 600,
-                  fontSize: 14,
+                  display: 'inline-block',
+                  maxWidth: '100%',
+                  padding: '3px 10px',
+                  borderRadius: 8,
+                  border: '1px solid var(--accent)',
+                  background: 'rgba(255,214,10,0.12)',
+                  color: 'var(--accent)',
+                  fontWeight: 700,
+                  fontSize: 15,
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis'

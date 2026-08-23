@@ -75,7 +75,7 @@ export default function App(): JSX.Element {
 
   const peers: PeerInfo[] = [
     ...lanPeers.map((p) => ({ ...p, transport: 'lan' as const })),
-    ...relayPeers.map((p) => ({ id: p.deviceId, name: p.name, transport: 'relay' as const }))
+    ...relayPeers.map((p) => ({ id: p.deviceId, name: p.name, platform: p.platform, transport: 'relay' as const }))
   ]
 
   return (

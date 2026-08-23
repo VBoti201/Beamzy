@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback, DragEvent } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { PeerInfo } from '../types'
 import sendIcon from '../assets/btn-send.svg'
+import { folderIconFor } from '../folderIcon'
+import { CloseIcon } from '../icons'
+import DestinationPicker from './DestinationPicker'
 
 interface Target {
   id: string
@@ -10,13 +13,17 @@ interface Target {
 
 export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   const [targets, setTargets] = useState<Target[]>([])
-  const [targetId, setTargetId] = useState('')
+  const [destFolderId, setDestFolderId] = useState('')
+  const [destRelPath, setDestRelPath] = useState('')
+  const [destLabel, setDestLabel] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [files, setFiles] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [sending, setSending] = useState(false)
 
   useEffect(() => {
     setFiles([])
+    setPickerOpen(false)
     const fetchTargets =
       peer.transport === 'relay'
         ? window.api.relayTargets({ peerId: peer.id })
@@ -24,7 +31,9 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
     fetchTargets
       .then((t) => {
         setTargets(t)
-        setTargetId(t[0]?.id || '')
+        setDestFolderId(t[0]?.id || '')
+        setDestRelPath('')
+        setDestLabel(t[0]?.name || '')
       })
       .catch(() => setTargets([]))
   }, [peer])
@@ -45,13 +54,17 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
     if (picked.length) setFiles((prev) => [...prev, ...picked])
   }
 
+  const removeFile = (index: number): void => {
+    setFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const send = async (): Promise<void> => {
-    if (!files.length || !targetId) return
+    if (!files.length || !destFolderId) return
     setSending(true)
     if (peer.transport === 'relay') {
-      await window.api.relayPush({ peerId: peer.id, folderId: targetId, destRelPath: '', localFilePaths: files })
+      await window.api.relayPush({ peerId: peer.id, folderId: destFolderId, destRelPath, localFilePaths: files })
     } else {
-      await window.api.pushFiles({ host: peer.host!, port: peer.port!, folderId: targetId, destRelPath: '', localFilePaths: files })
+      await window.api.pushFiles({ host: peer.host!, port: peer.port!, folderId: destFolderId, destRelPath, localFilePaths: files })
     }
     setSending(false)
     setFiles([])
@@ -93,25 +106,93 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
           {peer.transport === 'relay' ? ' (via relay)' : ''}
         </div>
         {files.length > 0 && (
-          <div style={{ marginTop: 8, maxWidth: '80%', textAlign: 'left' }}>
+          <div
+            style={{ marginTop: 8, maxWidth: '90%', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}
+            onClick={(e) => e.stopPropagation()}
+          >
             {files.map((f, i) => (
-              <div key={i} style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-                • {f.split(/[\\/]/).pop()}
+              <div
+                key={i}
+                className="card"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '5px 6px 5px 10px',
+                  border: '1px solid var(--accent)',
+                  background: 'rgba(255,214,10,0.1)',
+                  maxWidth: 220
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--accent)',
+                    fontWeight: 600,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {f.split(/[\\/]/).pop()}
+                </span>
+                <button
+                  className="btn secondary"
+                  style={{ padding: '2px 5px', flexShrink: 0 }}
+                  title="Remove"
+                  onClick={() => removeFile(i)}
+                >
+                  <CloseIcon size={10} />
+                </button>
               </div>
             ))}
           </div>
         )}
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-        <select className="input" style={{ flex: 1 }} value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-          {targets.length === 0 && <option value="">The target device has no folder that accepts uploads</option>}
-          {targets.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-        <button className="btn" disabled={!files.length || !targetId || sending} onClick={send}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <button
+            className="input"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              textAlign: 'left',
+              cursor: targets.length ? 'pointer' : 'default'
+            }}
+            disabled={!targets.length}
+            onClick={() => setPickerOpen((v) => !v)}
+          >
+            {destLabel ? (
+              <>
+                <img src={folderIconFor(destLabel, true)} alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {destLabel}
+                </span>
+              </>
+            ) : (
+              <span style={{ color: 'var(--text-dim)' }}>The target device has no folder that accepts uploads</span>
+            )}
+            {targets.length > 0 && <span style={{ color: 'var(--text-dim)' }}>▾</span>}
+          </button>
+          <AnimatePresence>
+            {pickerOpen && (
+              <DestinationPicker
+                peer={peer}
+                targets={targets}
+                onClose={() => setPickerOpen(false)}
+                onPick={(folderId, relPath, label) => {
+                  setDestFolderId(folderId)
+                  setDestRelPath(relPath)
+                  setDestLabel(label)
+                  setPickerOpen(false)
+                }}
+              />
+            )}
+          </AnimatePresence>
+        </div>
+        <button className="btn" disabled={!files.length || !destFolderId || sending} onClick={send}>
           {sending ? 'Sending…' : `Send (${files.length})`}
         </button>
       </div>
