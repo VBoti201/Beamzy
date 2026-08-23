@@ -20,7 +20,7 @@ export default function PeerList({
   onSelect: (id: string) => void
 }): JSX.Element {
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px' }}>
+    <div style={{ flexShrink: 0, maxHeight: '50%', overflowY: 'auto', padding: '0 8px' }}>
       <AnimatePresence>
         {peers.length === 0 && (
           <motion.div

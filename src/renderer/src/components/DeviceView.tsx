@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import SendPanel from './SendPanel'
 import BrowsePanel from './BrowsePanel'
+import History from './History'
 import type { AppConfig, PeerInfo } from '../types'
 
 export default function DeviceView({ peer, config }: { peer: PeerInfo; config: AppConfig }): JSX.Element {
-  const [tab, setTab] = useState<'send' | 'browse'>('send')
+  const [tab, setTab] = useState<'send' | 'browse' | 'history'>('send')
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 24px 24px', minHeight: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
@@ -20,7 +21,7 @@ export default function DeviceView({ peer, config }: { peer: PeerInfo; config: A
             padding: 4
           }}
         >
-          {(['send', 'browse'] as const).map((t) => (
+          {(['send', 'browse', 'history'] as const).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -32,13 +33,15 @@ export default function DeviceView({ peer, config }: { peer: PeerInfo; config: A
                 fontSize: 13
               }}
             >
-              {t === 'send' ? 'Send' : 'Browse / pull'}
+              {t === 'send' ? 'Send' : t === 'browse' ? 'Browse / pull' : 'History'}
             </button>
           ))}
         </div>
       </div>
       <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} style={{ flex: 1, minHeight: 0 }}>
-        {tab === 'send' ? <SendPanel peer={peer} /> : <BrowsePanel peer={peer} config={config} />}
+        {tab === 'send' && <SendPanel peer={peer} />}
+        {tab === 'browse' && <BrowsePanel peer={peer} config={config} />}
+        {tab === 'history' && <History peerId={peer.id} />}
       </motion.div>
     </div>
   )

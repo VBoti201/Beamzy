@@ -65,6 +65,19 @@ function send(ws, obj) {
 }
 
 const httpServer = http.createServer((req, res) => {
+  const url = new URL(req.url, 'http://localhost')
+  if (url.pathname === '/check-pair') {
+    // Lets a client avoid picking a pairing code that another, unrelated
+    // pair of devices happens to be actively using right now. Not a full
+    // uniqueness guarantee (a code only "exists" here while someone is
+    // connected with it), but cuts the collision odds further for a code
+    // that's about to be generated/shown to a user.
+    const code = (url.searchParams.get('code') || '').toUpperCase()
+    const room = rooms.get(code)
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ inUse: !!room && room.size > 0 }))
+    return
+  }
   res.writeHead(200, { 'Content-Type': 'text/plain' })
   res.end('SwiftSend relay OK\n')
 })

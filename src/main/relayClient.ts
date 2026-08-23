@@ -73,14 +73,25 @@ interface IncomingWrite {
   totalBytes: number
   bytesTransferred: number
   direction: 'push' | 'pull'
+  fromPeerId: string
 }
 
 export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+
+export interface RelayHistoryEvent {
+  fileName: string
+  filePath: string
+  direction: 'sent' | 'received'
+  peerId: string
+  peerName: string
+  size: number
+}
 
 interface RelayClientCallbacks {
   onPeers: (peers: RelayPeer[]) => void
   onProgress: (p: RelayTransferProgress) => void
   onStatus: (status: RelayStatus) => void
+  onHistory: (e: RelayHistoryEvent) => void
 }
 
 export class RelayClient {
@@ -90,6 +101,7 @@ export class RelayClient {
   private pendingPulls = new Map<string, PendingPull>()
   private incomingWrites = new Map<string, IncomingWrite>()
   private outgoingPushes = new Map<string, { fileName: string; totalBytes: number }>()
+  private knownPeers = new Map<string, RelayPeer>()
   private url = ''
   private pairId = ''
   private deviceId = ''
@@ -188,7 +200,10 @@ export class RelayClient {
     }
 
     if (msg.type === 'presence') {
-      this.callbacks.onPeers(msg.peers || [])
+      const peers = msg.peers || []
+      this.knownPeers.clear()
+      for (const p of peers) this.knownPeers.set(p.deviceId, p)
+      this.callbacks.onPeers(peers)
       return
     }
     if (msg.type === 'error') {
@@ -322,7 +337,7 @@ export class RelayClient {
             error: streamErr.message
           })
         })
-        this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'pull' })
+        this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'pull', fromPeerId: from })
       } catch (err) {
         pull.reject(err instanceof Error ? err : new Error('Failed to start download'))
         this.pendingPulls.delete(transferId)
@@ -350,7 +365,7 @@ export class RelayClient {
         this.incomingWrites.delete(transferId)
         this.sendRelay(from, { kind: 'upload-error', transferId, message: streamErr.message })
       })
-      this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'push' })
+      this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'push', fromPeerId: from })
     } catch (err) {
       this.sendRelay(from, { kind: 'upload-error', transferId, message: err instanceof Error ? err.message : 'Failed to receive file' })
     }
@@ -391,6 +406,15 @@ export class RelayClient {
         pull.resolve()
         this.pendingPulls.delete(transferId)
       }
+      const fromPeer = this.knownPeers.get(write.fromPeerId)
+      this.callbacks.onHistory({
+        fileName: write.fileName,
+        filePath: write.destFile,
+        direction: 'received',
+        peerId: write.fromPeerId,
+        peerName: fromPeer?.name || write.fromPeerId,
+        size: write.totalBytes
+      })
       this.incomingWrites.delete(transferId)
     })
   }
@@ -466,6 +490,15 @@ export class RelayClient {
       stream.on('end', () => {
         this.sendRelay(to, { kind: 'upload-end', transferId })
         this.callbacks.onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction, done: true })
+        const toPeer = this.knownPeers.get(to)
+        this.callbacks.onHistory({
+          fileName,
+          filePath,
+          direction: 'sent',
+          peerId: to,
+          peerName: toPeer?.name || to,
+          size: totalBytes
+        })
         resolve()
       })
       stream.on('error', (err) => {

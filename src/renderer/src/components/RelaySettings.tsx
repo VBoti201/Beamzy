@@ -103,6 +103,9 @@ export default function RelaySettings({
                 Regenerate
               </button>
             </div>
+            <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
+              To pair, just type over this with the other device&apos;s code and hit Pair — no need to clear it first.
+            </div>
           </div>
 
           <div style={{ fontSize: 12, color: statusColor[relayStatus], display: 'flex', alignItems: 'center', gap: 6 }}>

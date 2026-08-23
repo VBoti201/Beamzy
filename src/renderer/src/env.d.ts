@@ -53,6 +53,10 @@ declare global {
         remoteRelPath: string
         destFolderId: string
       }) => Promise<void>
+      historyGet: () => Promise<import('./types').HistoryEntry[]>
+      historyRemove: (args: { id: string }) => Promise<import('./types').HistoryEntry[]>
+      historyOpen: (args: { filePath: string }) => Promise<string>
+      onHistoryUpdate: (cb: (entries: import('./types').HistoryEntry[]) => void) => () => void
       onAppReady: (cb: (data: unknown) => void) => () => void
       onPeersUpdate: (cb: (peers: import('./types').LanPeer[]) => void) => () => void
       onRelayPeersUpdate: (cb: (peers: import('./types').RelayPeer[]) => void) => () => void

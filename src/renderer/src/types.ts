@@ -72,6 +72,18 @@ export interface TransferProgress {
   error?: string
 }
 
+export interface HistoryEntry {
+  id: string
+  fileName: string
+  filePath: string
+  direction: 'sent' | 'received'
+  peerId: string
+  peerName: string
+  timestamp: number
+  size: number
+  error?: string
+}
+
 export interface UpdateStatus {
   state: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error'
   version?: string

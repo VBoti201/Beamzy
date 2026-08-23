@@ -11,8 +11,16 @@ export interface IncomingProgressEvent {
   totalBytes: number
 }
 
+export interface IncomingDoneEvent {
+  fileName: string
+  filePath: string
+  size: number
+  remoteAddress: string
+}
+
 interface ServerEvents {
   onIncomingProgress?: (e: IncomingProgressEvent) => void
+  onIncomingDone?: (e: IncomingDoneEvent) => void
 }
 
 function safeResolve(root: string, relPath: string): string {
@@ -159,6 +167,12 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     writeStream.on('finish', () => {
       res.writeHead(200)
       res.end('ok')
+      events.onIncomingDone?.({
+        fileName: path.basename(destFile),
+        filePath: destFile,
+        size: totalBytes,
+        remoteAddress: req.socket.remoteAddress || ''
+      })
     })
     writeStream.on('error', (err) => {
       res.writeHead(500)

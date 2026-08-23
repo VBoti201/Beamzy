@@ -76,7 +76,7 @@ export function pullFile(
   destDirPath: string,
   transferId: string,
   onProgress: ProgressCb
-): Promise<void> {
+): Promise<{ fileName: string; destFile: string; size: number }> {
   return new Promise((resolve, reject) => {
     const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(remoteRelPath)}`
     http
@@ -99,7 +99,7 @@ export function pullFile(
         res.pipe(writeStream)
         writeStream.on('finish', () => {
           onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction: 'pull', done: true })
-          resolve()
+          resolve({ fileName, destFile, size: totalBytes })
         })
         writeStream.on('error', (err) => {
           onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction: 'pull', error: err.message })

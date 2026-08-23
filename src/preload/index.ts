@@ -20,6 +20,14 @@ const api = {
   relayTargets: (args: unknown) => ipcRenderer.invoke('relay:targets', args),
   relayPush: (args: unknown) => ipcRenderer.invoke('relay:push', args),
   relayPull: (args: unknown) => ipcRenderer.invoke('relay:pull', args),
+  historyGet: () => ipcRenderer.invoke('history:get'),
+  historyRemove: (args: unknown) => ipcRenderer.invoke('history:remove', args),
+  historyOpen: (args: unknown) => ipcRenderer.invoke('history:open', args),
+  onHistoryUpdate: (cb: (entries: unknown[]) => void) => {
+    const listener = (_e: unknown, entries: unknown[]): void => cb(entries)
+    ipcRenderer.on('history:update', listener)
+    return () => ipcRenderer.removeListener('history:update', listener)
+  },
   installUpdate: () => ipcRenderer.invoke('update:install'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   getAppVersion: () => ipcRenderer.invoke('update:get-version'),

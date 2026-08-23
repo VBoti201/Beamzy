@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import PeerList from './PeerList'
 import DeviceView from './DeviceView'
 import TransferTray from './TransferTray'
+import RecentActivity from './RecentActivity'
 import SettingsModal from './SettingsModal'
 import { GearIcon, RadarIcon, SidebarToggleIcon } from '../icons'
 import type { AppConfig, PeerInfo, RelayStatus, TransferProgress, UpdateStatus } from '../types'
@@ -55,6 +56,7 @@ export default function Dashboard({
         </button>
       </div>
       <PeerList peers={peers} selectedId={selectedPeerId} onSelect={setSelectedPeerId} />
+      <RecentActivity />
     </>
   )
 
