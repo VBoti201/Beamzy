@@ -59,7 +59,7 @@
     },
     "publish": {
       "provider": "generic",
-      "url": "https://updates.yourdomain.com/swiftsend/",
+      "url": "https://swiftsend-1.onrender.com/",
       "channel": "latest"
     }
   },
