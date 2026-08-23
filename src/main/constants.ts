@@ -4,7 +4,7 @@ import { randomInt } from 'crypto'
 // deployed relay (see relay/DEPLOY.md), then rebuild the app. Every device
 // you install SwiftSend on will already have it pre-filled in Settings, so
 // pairing is just: flip the toggle, share the pairing code, done.
-export const DEFAULT_RELAY_URL = 'wss://relay.yourdomain.com'
+export const DEFAULT_RELAY_URL = 'wss://swiftsend-cfxh.onrender.com'
 
 // Short, easy-to-read-aloud/type pairing code alphabet — excludes visually
 // ambiguous characters (0/O, 1/I/L).
