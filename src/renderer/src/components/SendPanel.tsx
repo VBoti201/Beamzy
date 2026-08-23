@@ -13,6 +13,7 @@ interface Target {
 
 export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   const [targets, setTargets] = useState<Target[]>([])
+  const [targetsError, setTargetsError] = useState(false)
   const [destFolderId, setDestFolderId] = useState('')
   const [destRelPath, setDestRelPath] = useState('')
   const [destLabel, setDestLabel] = useState('')
@@ -24,6 +25,7 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   useEffect(() => {
     setFiles([])
     setPickerOpen(false)
+    setTargetsError(false)
     const fetchTargets =
       peer.transport === 'relay'
         ? window.api.relayTargets({ peerId: peer.id })
@@ -35,8 +37,12 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
         setDestRelPath('')
         setDestLabel(t[0]?.name || '')
       })
-      .catch(() => setTargets([]))
-  }, [peer])
+      .catch(() => {
+        setTargets([])
+        setTargetsError(true)
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [peer.id])
 
   const onDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -172,7 +178,11 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
                 </span>
               </>
             ) : (
-              <span style={{ color: 'var(--text-dim)' }}>The target device has no folder that accepts uploads</span>
+              <span style={{ color: targetsError ? 'var(--danger)' : 'var(--text-dim)' }}>
+                {targetsError
+                  ? "Couldn't reach the other device — try again"
+                  : 'The target device has no folder that accepts uploads'}
+              </span>
             )}
             {targets.length > 0 && <span style={{ color: 'var(--text-dim)' }}>▾</span>}
           </button>

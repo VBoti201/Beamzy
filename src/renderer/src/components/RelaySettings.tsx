@@ -68,21 +68,14 @@ export default function RelaySettings({
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>Remote access</div>
-          <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 2 }}>
-            Send &amp; pull files even when this device isn&apos;t on the same network.
-          </div>
-        </div>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>Remote access</div>
         <input type="checkbox" checked={relay.enabled} disabled={busy} onChange={toggle} />
       </div>
 
       {relay.enabled && (
         <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text-dim)' }}>
-              Pairing code — share this with your other device, or paste theirs here to pair with it
-            </label>
+            <label style={{ fontSize: 12, color: 'var(--text-dim)' }}>Pairing code</label>
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <input
                 className="input"

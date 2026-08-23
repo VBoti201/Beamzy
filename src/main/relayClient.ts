@@ -35,7 +35,12 @@ const REQUEST_TIMEOUT_MS = 10000
 function safeResolve(root: string, relPath: string): string {
   const normalizedRoot = path.normalize(root)
   const resolved = path.normalize(path.join(normalizedRoot, relPath || ''))
-  if (resolved !== normalizedRoot && !resolved.startsWith(normalizedRoot + path.sep)) {
+  // A drive root like "D:\" already ends in the separator — appending
+  // another one before checking startsWith would require a doubled
+  // separator that never actually occurs, incorrectly blocking every file
+  // directly inside a whole-drive shared folder.
+  const rootWithSep = normalizedRoot.endsWith(path.sep) ? normalizedRoot : normalizedRoot + path.sep
+  if (resolved !== normalizedRoot && !resolved.startsWith(rootWithSep)) {
     throw new Error('Path traversal blocked')
   }
   return resolved
