@@ -73,6 +73,9 @@ export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: 
       } else {
         await window.api.pullFile({ host: peer.host!, port: peer.port!, folderId, remoteRelPath: e.path, destFolderId: destId })
       }
+    } catch {
+      // Failure is already surfaced via the transfer tray's error progress
+      // event — nothing more to do here besides not leaving this rejected.
     } finally {
       setPulling(null)
     }

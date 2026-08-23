@@ -301,6 +301,27 @@ export class RelayClient {
         ensureDir(pull.destDirPath)
         const destFile = path.join(pull.destDirPath, fileName)
         const stream = fs.createWriteStream(destFile)
+        // createWriteStream doesn't throw synchronously for a bad
+        // destination (e.g. a read-only filesystem) — the open() failure
+        // arrives later as an async 'error' event. Without a listener
+        // attached up front, Node treats that as an uncaught exception and
+        // crashes the whole main process.
+        stream.on('error', (streamErr) => {
+          this.incomingWrites.delete(transferId)
+          const pending = this.pendingPulls.get(transferId)
+          if (pending) {
+            pending.reject(streamErr)
+            this.pendingPulls.delete(transferId)
+          }
+          this.callbacks.onProgress({
+            transferId,
+            fileName,
+            bytesTransferred: 0,
+            totalBytes,
+            direction: 'pull',
+            error: streamErr.message
+          })
+        })
         this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'pull' })
       } catch (err) {
         pull.reject(err instanceof Error ? err : new Error('Failed to start download'))
@@ -322,6 +343,13 @@ export class RelayClient {
       ensureDir(destDir)
       const destFile = safeResolve(destDir, path.basename(fileName))
       const stream = fs.createWriteStream(destFile)
+      // See the matching comment in the pull branch above — createWriteStream
+      // failures are async, so this listener must be attached synchronously
+      // or an EROFS/EACCES here crashes the whole main process.
+      stream.on('error', (streamErr) => {
+        this.incomingWrites.delete(transferId)
+        this.sendRelay(from, { kind: 'upload-error', transferId, message: streamErr.message })
+      })
       this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'push' })
     } catch (err) {
       this.sendRelay(from, { kind: 'upload-error', transferId, message: err instanceof Error ? err.message : 'Failed to receive file' })
