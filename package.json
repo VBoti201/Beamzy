@@ -1,6 +1,6 @@
 {
   "name": "swiftsend",
-  "version": "0.1.38",
+  "version": "0.1.39",
   "description": "Ultra-fast LAN file transfer between your Mac and Windows devices",
   "main": "./out/main/index.js",
   "author": "verdesboti@icloud.com",
@@ -45,6 +45,10 @@
     "productName": "Beamzy",
     "files": [
       "out/**/*"
+    ],
+    "extraResources": [
+      { "from": "build/icon_512.png", "to": "icon_512.png" },
+      { "from": "build/icon-light_512.png", "to": "icon-light_512.png" }
     ],
     "mac": {
       "target": [

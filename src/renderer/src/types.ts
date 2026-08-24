@@ -13,12 +13,15 @@ export interface RelayConfig {
   pairId: string
 }
 
+export type Theme = 'dark' | 'light'
+
 export interface AppConfig {
   deviceId: string
   deviceName: string
   onboarded: boolean
   sharedFolders: SharedFolder[]
   relay: RelayConfig
+  theme: Theme
 }
 
 export interface DriveInfo {

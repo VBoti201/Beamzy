@@ -81,7 +81,7 @@ export default function Dashboard({
               {diskSpace ? `${formatBytes(diskSpace.free)} free` : '…'}
             </span>
           </div>
-          <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          <div style={{ height: 5, borderRadius: 3, background: 'var(--overlay-08)', overflow: 'hidden' }}>
             <div
               className="disk-fill"
               style={{ width: diskSpace && diskSpace.total ? `${Math.min(100, ((diskSpace.total - diskSpace.free) / diskSpace.total) * 100)}%` : '0%' }}

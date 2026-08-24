@@ -9,6 +9,7 @@ import {
   updateConfig,
   SharedFolder,
   RelayConfig,
+  Theme,
   effectivePermission,
   setDevicePermission,
   clearDevicePermission
@@ -55,6 +56,25 @@ function getFriendlySystemName(): string {
 }
 
 app.setName('Beamzy')
+
+function iconPathFor(theme: Theme): string {
+  const filename = theme === 'light' ? 'icon-light_512.png' : 'icon_512.png'
+  // build/ isn't part of the packaged app (only out/**/* is) — extraResources
+  // copies both icon PNGs into resourcesPath so the runtime theme-swap below
+  // can still find them once installed, not just in dev.
+  return app.isPackaged ? path.join(process.resourcesPath, filename) : path.join(__dirname, '../../build', filename)
+}
+
+// The installed app's Dock/taskbar icon (Info.plist / .exe resource) is
+// baked in at build time and can't change — but while the app is actually
+// running, both the Dock icon (macOS) and each window's own icon (Windows/
+// Linux taskbar) can be swapped live, so a theme toggle can feel instant.
+function applyThemeIcon(theme: Theme): void {
+  const image = nativeImage.createFromPath(iconPathFor(theme))
+  if (image.isEmpty()) return
+  if (process.platform === 'darwin') app.dock?.setIcon(image)
+  for (const win of BrowserWindow.getAllWindows()) win.setIcon(image)
+}
 
 let mainWindow: BrowserWindow | null = null
 let discovery: Discovery | null = null
@@ -137,8 +157,8 @@ function createWindow(): void {
     minWidth: 860,
     minHeight: 560,
     show: false,
-    backgroundColor: '#08080a',
-    icon: path.join(__dirname, '../../build/icon_512.png'),
+    backgroundColor: getConfig().theme === 'light' ? '#f5ecd8' : '#08080a',
+    icon: iconPathFor(getConfig().theme),
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: true,
     webPreferences: {
@@ -223,10 +243,7 @@ async function bootstrap(): Promise<void> {
 }
 
 app.whenReady().then(() => {
-  if (process.platform === 'darwin' && !app.isPackaged) {
-    const devIcon = nativeImage.createFromPath(path.join(__dirname, '../../build/icon_512.png'))
-    if (!devIcon.isEmpty()) app.dock?.setIcon(devIcon)
-  }
+  if (process.platform === 'darwin') applyThemeIcon(getConfig().theme)
   createWindow()
   mainWindow?.webContents.once('did-finish-load', () => {
     bootstrap()
@@ -250,6 +267,13 @@ function cleanupBeforeQuit(): void {
 app.on('before-quit', cleanupBeforeQuit)
 
 ipcMain.handle('config:get', () => getConfig())
+
+// The renderer needs the persisted theme before its very first paint (the
+// splash screen included) to avoid a dark->light flash on launch — a
+// synchronous call is the only way to get that in before React mounts.
+ipcMain.on('config:get-theme-sync', (event) => {
+  event.returnValue = getConfig().theme
+})
 
 ipcMain.handle('update:install', () => {
   // quitAndInstall's quit path doesn't reliably wait for 'before-quit' to
@@ -275,10 +299,20 @@ ipcMain.handle('system:disk-space', () => getPrimaryDiskSpace())
 
 ipcMain.handle(
   'config:update',
-  (_e, partial: Partial<{ deviceName: string; sharedFolders: SharedFolder[]; onboarded: boolean; relay: RelayConfig }>) => {
+  (
+    _e,
+    partial: Partial<{
+      deviceName: string
+      sharedFolders: SharedFolder[]
+      onboarded: boolean
+      relay: RelayConfig
+      theme: Theme
+    }>
+  ) => {
     const updated = updateConfig(partial)
     if (partial.deviceName && discovery) discovery.updateName(partial.deviceName)
     if (partial.deviceName || partial.relay) syncRelayClient(updated)
+    if (partial.theme) applyThemeIcon(partial.theme)
     return updated
   }
 )

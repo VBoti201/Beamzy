@@ -4,6 +4,7 @@ declare global {
   interface Window {
     api: {
       getConfig: () => Promise<import('./types').AppConfig>
+      getInitialTheme: () => import('./types').Theme
       getHostname: () => Promise<string>
       getDrives: () => Promise<import('./types').DriveInfo[]>
       getDiskSpace: () => Promise<{ free: number; total: number }>

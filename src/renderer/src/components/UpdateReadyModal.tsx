@@ -29,7 +29,7 @@ export default function UpdateReadyModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.35)',
+        background: 'var(--modal-backdrop)',
         ...(isWindows ? {} : { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }),
         display: 'flex',
         alignItems: 'center',

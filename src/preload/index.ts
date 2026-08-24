@@ -5,6 +5,7 @@ const api = {
   zipDirectory: (p: string): Promise<string> => ipcRenderer.invoke('fs:zip-directory', { path: p }),
   deleteFile: (p: string): Promise<void> => ipcRenderer.invoke('fs:delete-file', { path: p }),
   getConfig: () => ipcRenderer.invoke('config:get'),
+  getInitialTheme: (): 'dark' | 'light' => ipcRenderer.sendSync('config:get-theme-sync'),
   getHostname: () => ipcRenderer.invoke('system:hostname'),
   getDrives: () => ipcRenderer.invoke('system:drives'),
   getDiskSpace: () => ipcRenderer.invoke('system:disk-space'),

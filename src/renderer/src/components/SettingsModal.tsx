@@ -22,12 +22,19 @@ export default function SettingsModal({
   const [name, setName] = useState(config.deviceName)
   const [folders, setFolders] = useState(config.sharedFolders)
   const [relay, setRelay] = useState(config.relay)
+  const [theme, setTheme] = useState(config.theme)
   const [saving, setSaving] = useState(false)
+
+  const changeTheme = async (t: typeof theme): Promise<void> => {
+    setTheme(t)
+    document.documentElement.dataset.theme = t
+    await window.api.updateConfig({ theme: t })
+  }
 
   const save = async (): Promise<void> => {
     setSaving(true)
     const updated = await window.api.updateConfig({ deviceName: name.trim(), sharedFolders: folders })
-    onSaved({ ...updated, relay })
+    onSaved({ ...updated, relay, theme })
     setSaving(false)
     onClose()
   }
@@ -40,7 +47,7 @@ export default function SettingsModal({
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(0,0,0,0.5)',
+        background: 'var(--modal-backdrop-strong)',
         ...(isWindows ? {} : { backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }),
         display: 'flex',
         alignItems: 'center',
@@ -57,6 +64,38 @@ export default function SettingsModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 style={{ marginTop: 0 }}>Settings</h2>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <label style={{ fontSize: 13, color: 'var(--text-dim)' }}>Appearance</label>
+          <div
+            style={{
+              display: 'flex',
+              gap: 4,
+              background: 'var(--overlay-05)',
+              border: '1px solid var(--card-border)',
+              borderRadius: 10,
+              padding: 3
+            }}
+          >
+            <button
+              className={`btn tab-pill${theme === 'dark' ? ' active' : ''}`}
+              style={{ padding: '5px 12px', fontSize: 12 }}
+              onClick={() => changeTheme('dark')}
+            >
+              Dark
+            </button>
+            <button
+              className={`btn tab-pill${theme === 'light' ? ' active' : ''}`}
+              style={{ padding: '5px 12px', fontSize: 12 }}
+              onClick={() => changeTheme('light')}
+            >
+              Light
+            </button>
+          </div>
+        </div>
+
+        <div style={{ height: 1, background: 'var(--card-border)', margin: '0 0 16px' }} />
+
         <label style={{ fontSize: 13, color: 'var(--text-dim)' }}>Device name</label>
         <input className="input" style={{ width: '100%', margin: '6px 0 16px' }} value={name} onChange={(e) => setName(e.target.value)} />
         <label style={{ fontSize: 13, color: 'var(--text-dim)' }}>Shared folders</label>

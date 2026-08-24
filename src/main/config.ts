@@ -29,6 +29,8 @@ export interface DevicePermission {
   allowDownload: boolean
 }
 
+export type Theme = 'dark' | 'light'
+
 export interface AppConfig {
   deviceId: string
   deviceName: string
@@ -36,6 +38,7 @@ export interface AppConfig {
   sharedFolders: SharedFolder[]
   relay: RelayConfig
   devicePermissions: DevicePermission[]
+  theme: Theme
 }
 
 const store = new Store<AppConfig>({
@@ -49,7 +52,8 @@ const store = new Store<AppConfig>({
     // not something each user has to run themselves — so remote access
     // should just work out of the box, no Settings-diving required.
     relay: { enabled: true, url: DEFAULT_RELAY_URL, pairId: '' },
-    devicePermissions: []
+    devicePermissions: [],
+    theme: 'dark'
   }
 })
 
@@ -60,7 +64,8 @@ export function getConfig(): AppConfig {
     onboarded: store.get('onboarded'),
     sharedFolders: store.get('sharedFolders'),
     relay: store.get('relay'),
-    devicePermissions: store.get('devicePermissions', [])
+    devicePermissions: store.get('devicePermissions', []),
+    theme: store.get('theme', 'dark')
   }
 }
 
@@ -70,6 +75,7 @@ export function updateConfig(partial: Partial<AppConfig>): AppConfig {
   if (partial.sharedFolders !== undefined) store.set('sharedFolders', partial.sharedFolders)
   if (partial.relay !== undefined) store.set('relay', partial.relay)
   if (partial.devicePermissions !== undefined) store.set('devicePermissions', partial.devicePermissions)
+  if (partial.theme !== undefined) store.set('theme', partial.theme)
   return getConfig()
 }
 

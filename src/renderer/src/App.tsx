@@ -31,6 +31,10 @@ export default function App(): JSX.Element {
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null)
 
   useEffect(() => {
+    document.documentElement.dataset.theme = config?.theme || 'dark'
+  }, [config?.theme])
+
+  useEffect(() => {
     let mounted = true
     const minSplash = new Promise((resolve) => setTimeout(resolve, 2000))
     const ready = new Promise<void>((resolve) => {
