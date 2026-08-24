@@ -22,8 +22,48 @@
 // kicks it.
 
 const http = require('http')
+const fs = require('fs')
+const path = require('path')
 const { randomUUID } = require('crypto')
 const { WebSocketServer } = require('ws')
+
+const UPDATE_FEED_HOST = 'https://swiftsend-1.onrender.com'
+const COUNTS_FILE = path.join(__dirname, 'download-counts.json')
+
+// Best-effort landing-page download counter. In-memory, persisted to a
+// local file so a plain process restart doesn't lose it — a full redeploy
+// still resets it (Render's disk isn't durable across those), same
+// trade-off already accepted for `approvedDevices` below. Not meant to be
+// exact, just a rough "people have actually grabbed this" number.
+let downloadCounts = { mac: 0, win: 0 }
+try {
+  downloadCounts = { ...downloadCounts, ...JSON.parse(fs.readFileSync(COUNTS_FILE, 'utf8')) }
+} catch {
+  // no file yet, or unreadable — start from zero
+}
+function saveCounts() {
+  try {
+    fs.writeFileSync(COUNTS_FILE, JSON.stringify(downloadCounts))
+  } catch {
+    // best-effort only
+  }
+}
+
+// The landing page links here instead of a versioned filename directly, so
+// it never needs manual updating after a release — this always resolves
+// whatever the update feed currently says is latest.
+async function resolveDownloadUrl(platform) {
+  const feedUrl = platform === 'mac' ? `${UPDATE_FEED_HOST}/latest-mac.yml` : `${UPDATE_FEED_HOST}/latest.yml`
+  const res = await fetch(feedUrl)
+  if (!res.ok) throw new Error(`update feed returned ${res.status}`)
+  const yml = await res.text()
+  const name =
+    platform === 'mac'
+      ? (yml.match(/url:\s*(.+\.dmg)\s*$/m) || yml.match(/^path:\s*(.+)$/m) || [])[1]
+      : (yml.match(/^path:\s*(.+)$/m) || [])[1]
+  if (!name) throw new Error('could not find a download in the update feed')
+  return `${UPDATE_FEED_HOST}/${encodeURIComponent(name.trim())}`
+}
 
 const PORT = process.env.PORT || 8787
 const MAX_PAYLOAD = 2 * 1024 * 1024 // 2MB per frame (chunks are sent as ~256KB base64)
@@ -173,7 +213,7 @@ function kickDevice(pairId, deviceId) {
   info.ws.close(4010, 'removed by another device')
 }
 
-const httpServer = http.createServer((req, res) => {
+const httpServer = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost')
   if (url.pathname === '/check-pair') {
     // Lets a client avoid picking a pairing code that another, unrelated
@@ -185,6 +225,25 @@ const httpServer = http.createServer((req, res) => {
     const room = rooms.get(code)
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ inUse: !!room && room.size > 0 }))
+    return
+  }
+  if (url.pathname === '/downloads/count') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' })
+    res.end(JSON.stringify({ ...downloadCounts, total: downloadCounts.mac + downloadCounts.win }))
+    return
+  }
+  if (url.pathname === '/downloads/mac' || url.pathname === '/downloads/win') {
+    const platform = url.pathname === '/downloads/mac' ? 'mac' : 'win'
+    downloadCounts[platform] += 1
+    saveCounts()
+    try {
+      const target = await resolveDownloadUrl(platform)
+      res.writeHead(302, { Location: target })
+      res.end()
+    } catch (err) {
+      res.writeHead(502, { 'Content-Type': 'text/plain' })
+      res.end(`Could not resolve the latest download right now: ${err.message}`)
+    }
     return
   }
   res.writeHead(200, { 'Content-Type': 'text/plain' })

@@ -108,8 +108,17 @@
   }
   .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; animation: pulseDot 2s ease-in-out infinite; }
   @keyframes pulseDot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
-  .feature { transition: transform 0.18s ease, border-color 0.18s ease; }
+  .feature {
+    position: relative; overflow: hidden;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+  }
   .feature:hover { transform: translateY(-3px); border-color: rgba(255, 214, 10, 0.3); }
+  .feature::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 214, 10, 0.16), transparent 70%);
+    opacity: 0; transition: opacity 0.35s ease;
+  }
+  .feature:hover::before { opacity: 1; }
   .hero h1 {
     font-size: 56px; font-weight: 800; letter-spacing: -1.8px; line-height: 1.06;
     margin: 0 0 20px;
@@ -284,6 +293,12 @@
     border: 1px solid var(--card-border);
   }
   .bottom-cta h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; margin: 0 0 22px; }
+  .cta-mark {
+    width: 38px; height: 38px; border-radius: 11px; margin: 0 auto 18px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 8px 24px rgba(255, 184, 0, 0.3);
+  }
+  .download-count { margin-top: 18px; font-size: 12.5px; color: var(--text-dim); }
 
   .watermark {
     position: relative;
@@ -330,7 +345,7 @@
         <svg class="moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" fill="currentColor"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <a class="nav-cta" href="https://swiftsend-1.onrender.com/Beamzy-0.1.29-arm64.dmg">Download <span style="font-weight:400">→</span></a>
+      <a class="nav-cta" href="https://swiftsend-cfxh.onrender.com/downloads/mac">Download <span style="font-weight:400">→</span></a>
     </nav>
   </div>
 
@@ -343,16 +358,16 @@
         <h1>Send files between your<br /><span class="hl">Mac and Windows</span>, instantly</h1>
         <p class="sub">Beamzy finds your other device on the same network automatically. No accounts, no cloud upload. Away from home? A short pairing code keeps it working anywhere.</p>
         <div class="downloads">
-          <a class="btn primary" href="https://swiftsend-1.onrender.com/Beamzy-0.1.29-arm64.dmg">
+          <a class="btn primary" href="https://swiftsend-cfxh.onrender.com/downloads/mac">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M16.5 3c.1 1.3-.4 2.5-1.1 3.4-.8.9-2 1.6-3.2 1.5-.1-1.3.5-2.6 1.2-3.4.8-.9 2.1-1.6 3.1-1.5zM20.8 17.2c-.5 1.2-.8 1.8-1.5 2.8-1 1.4-2.3 3.2-4 3.2-1.5 0-1.9-1-3.9-1s-2.5 1-4 1c-1.7 0-3-1.7-4-3-2.4-3.4-2.7-7.4-1.2-9.6 1.1-1.6 2.7-2.5 4.3-2.5 1.6 0 2.6 1.1 3.9 1.1s2-1.1 3.9-1.1c1.4 0 2.9.7 3.9 2-3.5 1.9-2.9 6.9.6 8.1z" fill="currentColor"/></svg>
             Download for Mac
           </a>
-          <a class="btn secondary" href="https://swiftsend-1.onrender.com/Beamzy%20Setup%200.1.29.exe">
+          <a class="btn secondary" href="https://swiftsend-cfxh.onrender.com/downloads/win">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 5.5L10.5 4.4V11.5H3V5.5ZM11.5 4.3L21 3V11.4H11.5V4.3ZM3 12.5H10.5V19.6L3 18.5V12.5ZM11.5 12.5H21V21L11.5 19.7V12.5Z" fill="currentColor"/></svg>
             Download for Windows
           </a>
         </div>
-        <div class="version-note">v0.1.29 · free · updates itself</div>
+        <div class="version-note">Free · updates itself</div>
       </section>
 
       <div class="mockup-wrap">
@@ -494,18 +509,20 @@
         </details>
         <details>
           <summary>What are the system requirements?</summary>
-          <div class="a">Any combination works: two Macs, two Windows PCs, or one of each, either on the same network or paired remotely with a code.</div>
+          <div class="a">Really just two devices. Any mix of Mac and Windows works, either on the same network or paired remotely with a code.</div>
         </details>
       </div>
     </section>
 
     <section class="section" style="padding-top: 10px;">
       <div class="bottom-cta">
+        <div class="cta-mark"></div>
         <h2>Ready to send your first file?</h2>
         <div class="downloads">
-          <a class="btn primary" href="https://swiftsend-1.onrender.com/Beamzy-0.1.29-arm64.dmg">Download for Mac</a>
-          <a class="btn secondary" href="https://swiftsend-1.onrender.com/Beamzy%20Setup%200.1.29.exe">Download for Windows</a>
+          <a class="btn primary" href="https://swiftsend-cfxh.onrender.com/downloads/mac">Download for Mac</a>
+          <a class="btn secondary" href="https://swiftsend-cfxh.onrender.com/downloads/win">Download for Windows</a>
         </div>
+        <div class="download-count" id="downloadCount"></div>
       </div>
     </section>
 
@@ -524,6 +541,27 @@
         root.setAttribute('data-theme', next);
         try { localStorage.setItem('beamzy-theme', next); } catch (e) {}
       });
+    })();
+
+    (function () {
+      document.querySelectorAll('.feature').forEach(function (card) {
+        card.addEventListener('mousemove', function (e) {
+          var rect = card.getBoundingClientRect();
+          card.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
+          card.style.setProperty('--my', (e.clientY - rect.top) + 'px');
+        });
+      });
+    })();
+
+    (function () {
+      fetch('https://swiftsend-cfxh.onrender.com/downloads/count')
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d || !d.total) return;
+          document.getElementById('downloadCount').textContent =
+            d.total.toLocaleString() + (d.total === 1 ? ' download so far' : ' downloads so far');
+        })
+        .catch(function () {});
     })();
   </script>
 </body>
