@@ -87,6 +87,16 @@ export function UserIcon({ size = 16, style, color = 'currentColor' }: IconProps
   )
 }
 
+export function DiskIcon({ size = 16, style, color = 'currentColor' }: IconProps): JSX.Element {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="3" stroke={color} strokeWidth="1.7" />
+      <path d="M3.5 14.5h17" stroke={color} strokeWidth="1.7" />
+      <circle cx="16.5" cy="17" r="1" fill={color} />
+    </svg>
+  )
+}
+
 export function GlobeIcon({ size = 12, style, color = 'currentColor' }: IconProps): JSX.Element {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>

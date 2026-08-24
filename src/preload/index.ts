@@ -7,6 +7,7 @@ const api = {
   getConfig: () => ipcRenderer.invoke('config:get'),
   getHostname: () => ipcRenderer.invoke('system:hostname'),
   getDrives: () => ipcRenderer.invoke('system:drives'),
+  getDiskSpace: () => ipcRenderer.invoke('system:disk-space'),
   updateConfig: (partial: unknown) => ipcRenderer.invoke('config:update', partial),
   chooseFolder: () => ipcRenderer.invoke('dialog:chooseFolder'),
   pickFiles: () => ipcRenderer.invoke('dialog:pickFiles'),

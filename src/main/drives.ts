@@ -64,3 +64,18 @@ export function getDrives(): DriveInfo[] {
   if (process.platform === 'win32') return getDrivesWindows()
   return [{ name: os.hostname(), path: '/', isPrimary: true }]
 }
+
+export interface DiskSpace {
+  free: number
+  total: number
+}
+
+export function getPrimaryDiskSpace(): DiskSpace {
+  const target = process.platform === 'win32' ? `${(process.env.SystemDrive || 'C:').toUpperCase()}\\` : '/'
+  try {
+    const stat = fs.statfsSync(target)
+    return { free: stat.bavail * stat.bsize, total: stat.blocks * stat.bsize }
+  } catch {
+    return { free: 0, total: 0 }
+  }
+}

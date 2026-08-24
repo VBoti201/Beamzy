@@ -16,7 +16,7 @@ import {
 import { Discovery, PeerInfo } from './discovery'
 import { startTransferServer, cancelIncomingTransfer } from './transferServer'
 import { pushFile, pullFile, fetchJson, notifyHistoryDelete, cancelLanTransfer } from './transferClient'
-import { getDrives } from './drives'
+import { getDrives, getPrimaryDiskSpace } from './drives'
 import { RelayClient } from './relayClient'
 import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './updater'
 import { generateUniquePairingCode } from './constants'
@@ -256,6 +256,8 @@ ipcMain.handle('update:get-version', () => app.getVersion())
 ipcMain.handle('system:hostname', () => getFriendlySystemName())
 
 ipcMain.handle('system:drives', () => getDrives())
+
+ipcMain.handle('system:disk-space', () => getPrimaryDiskSpace())
 
 ipcMain.handle(
   'config:update',

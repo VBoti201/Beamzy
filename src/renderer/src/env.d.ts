@@ -6,6 +6,7 @@ declare global {
       getConfig: () => Promise<import('./types').AppConfig>
       getHostname: () => Promise<string>
       getDrives: () => Promise<import('./types').DriveInfo[]>
+      getDiskSpace: () => Promise<{ free: number; total: number }>
       updateConfig: (partial: Partial<import('./types').AppConfig>) => Promise<import('./types').AppConfig>
       chooseFolder: () => Promise<string | null>
       pickFiles: () => Promise<string[]>

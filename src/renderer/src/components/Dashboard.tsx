@@ -1,12 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import PeerList from './PeerList'
 import DeviceView from './DeviceView'
 import TransferTray from './TransferTray'
 import RecentActivity from './RecentActivity'
 import SettingsModal from './SettingsModal'
-import { GearIcon, RadarIcon, SidebarToggleIcon, UserIcon } from '../icons'
+import { DiskIcon, GearIcon, RadarIcon, SidebarToggleIcon } from '../icons'
 import type { AppConfig, PeerInfo, RelayStatus, TransferProgress, UpdateStatus } from '../types'
+
+function formatBytes(n: number): string {
+  if (!n) return '0 GB'
+  const gb = n / 1024 ** 3
+  return gb >= 100 ? `${Math.round(gb)} GB` : `${gb.toFixed(1)} GB`
+}
 
 export default function Dashboard({
   config,
@@ -28,6 +34,16 @@ export default function Dashboard({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [hoverPeek, setHoverPeek] = useState(false)
   const selectedPeer = peers.find((p) => p.id === selectedPeerId) || null
+  const [diskSpace, setDiskSpace] = useState<{ free: number; total: number } | null>(null)
+
+  useEffect(() => {
+    const load = (): void => {
+      window.api.getDiskSpace().then(setDiskSpace)
+    }
+    load()
+    const interval = setInterval(load, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   const SIDEBAR_WIDTH = 280
   const RAIL_WIDTH = 16
@@ -53,13 +69,13 @@ export default function Dashboard({
       <PeerList peers={peers} selectedId={selectedPeerId} onSelect={setSelectedPeerId} />
       <RecentActivity />
       <div style={{ padding: 12, borderTop: '1px solid var(--card-border)', display: 'flex', gap: 8, flexShrink: 0 }}>
-        <button
+        <div
           className="btn secondary"
-          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start', padding: '8px 10px' }}
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', cursor: 'default' }}
         >
-          <UserIcon size={16} />
-          <span style={{ fontSize: 13 }}>Profile</span>
-        </button>
+          <DiskIcon size={16} />
+          <span style={{ fontSize: 13 }}>{diskSpace ? `${formatBytes(diskSpace.free)} free` : '…'}</span>
+        </div>
         <button className="btn secondary" style={{ padding: '8px 10px', flexShrink: 0 }} onClick={() => setSettingsOpen(true)}>
           <GearIcon size={16} />
         </button>
