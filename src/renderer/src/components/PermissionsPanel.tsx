@@ -2,6 +2,77 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { DevicePermissionView } from '../types'
 
+function EyeIcon(): JSX.Element {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  )
+}
+
+function DownloadIcon(): JSX.Element {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  )
+}
+
+function UploadIcon(): JSX.Element {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  )
+}
+
+function PermPill({
+  icon,
+  label,
+  active,
+  onClick
+}: {
+  icon: JSX.Element
+  label: string
+  active: boolean
+  onClick: () => void
+}): JSX.Element {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '5px 10px',
+        borderRadius: 8,
+        fontSize: 12,
+        fontWeight: 600,
+        border: active ? 'none' : '1px solid var(--card-border)',
+        background: active ? 'linear-gradient(135deg, var(--accent), var(--accent-2))' : 'transparent',
+        color: active ? 'var(--on-accent)' : 'var(--text-dim)',
+        cursor: 'pointer',
+        transition: 'transform 0.15s ease, background 0.15s ease, border-color 0.15s ease',
+        flexShrink: 0
+      }}
+      onMouseEnter={(ev) => {
+        if (!active) ev.currentTarget.style.borderColor = 'var(--accent)'
+      }}
+      onMouseLeave={(ev) => {
+        if (!active) ev.currentTarget.style.borderColor = 'var(--card-border)'
+      }}
+    >
+      {icon}
+      {label}
+    </button>
+  )
+}
+
 export default function PermissionsPanel({ deviceId }: { deviceId: string }): JSX.Element {
   const [entries, setEntries] = useState<DevicePermissionView[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,7 +126,7 @@ export default function PermissionsPanel({ deviceId }: { deviceId: string }): JS
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
+              gap: 8,
               padding: '10px 10px',
               borderRadius: 8,
               marginBottom: 4
@@ -65,30 +136,24 @@ export default function PermissionsPanel({ deviceId }: { deviceId: string }): JS
               {e.folderName}
             </div>
             {e.isCustom && <span style={{ fontSize: 10, color: 'var(--accent)', flexShrink: 0 }}>Custom</span>}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)', flexShrink: 0 }}>
-              <input
-                type="checkbox"
-                checked={e.allowBrowse}
-                onChange={(ev) => update(e.folderId, ev.target.checked, e.allowUpload, e.allowDownload)}
-              />
-              Browse
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)', flexShrink: 0 }}>
-              <input
-                type="checkbox"
-                checked={e.allowDownload}
-                onChange={(ev) => update(e.folderId, e.allowBrowse, e.allowUpload, ev.target.checked)}
-              />
-              Download
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)', flexShrink: 0 }}>
-              <input
-                type="checkbox"
-                checked={e.allowUpload}
-                onChange={(ev) => update(e.folderId, e.allowBrowse, ev.target.checked, e.allowDownload)}
-              />
-              Upload
-            </label>
+            <PermPill
+              icon={<EyeIcon />}
+              label="Browse"
+              active={e.allowBrowse}
+              onClick={() => update(e.folderId, !e.allowBrowse, e.allowUpload, e.allowDownload)}
+            />
+            <PermPill
+              icon={<DownloadIcon />}
+              label="Download"
+              active={e.allowDownload}
+              onClick={() => update(e.folderId, e.allowBrowse, e.allowUpload, !e.allowDownload)}
+            />
+            <PermPill
+              icon={<UploadIcon />}
+              label="Upload"
+              active={e.allowUpload}
+              onClick={() => update(e.folderId, e.allowBrowse, !e.allowUpload, e.allowDownload)}
+            />
             {e.isCustom && (
               <button className="btn secondary" style={{ padding: '3px 8px', fontSize: 11, flexShrink: 0 }} onClick={() => reset(e.folderId)}>
                 Reset

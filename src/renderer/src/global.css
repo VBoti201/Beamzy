@@ -164,3 +164,16 @@ button:focus-visible {
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
   border-radius: 4px;
 }
+
+.tab-pill {
+  background: transparent;
+  color: var(--text-dim);
+}
+.tab-pill:hover:not(:disabled):not(.active) {
+  background: rgba(255, 214, 10, 0.14);
+  color: var(--text);
+}
+.tab-pill.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: var(--on-accent);
+}

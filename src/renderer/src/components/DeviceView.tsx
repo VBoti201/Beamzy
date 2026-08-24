@@ -36,13 +36,8 @@ export default function DeviceView({ peer, config }: { peer: PeerInfo; config: A
             <button
               key={t}
               onClick={() => setTab(t)}
-              className="btn"
-              style={{
-                background: tab === t ? 'linear-gradient(135deg, var(--accent), var(--accent-2))' : 'transparent',
-                color: tab === t ? 'var(--on-accent)' : 'var(--text-dim)',
-                padding: '6px 14px',
-                fontSize: 13
-              }}
+              className={`btn tab-pill${tab === t ? ' active' : ''}`}
+              style={{ padding: '6px 14px', fontSize: 13 }}
             >
               {TAB_LABEL[t]}
             </button>
