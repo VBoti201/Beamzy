@@ -1,11 +1,17 @@
-version: 0.1.51
+version: 0.1.52
 files:
-  - url: Beamzy Setup 0.1.51.exe
+  - url: Beamzy Setup 0.1.52.exe
     sha512: >-
-      Ljs3L5kTODMX8PGK9f04X3nlvWjjccicjfyfn5JpfJ3/WIOU5oAHHvQUi1uQWM0OEMOJ2Ag0hDcAfaDHnX+7Ww==
-    size: 78300437
-path: Beamzy Setup 0.1.51.exe
+      Snr3On9Ekt8M+QfvgHGFcGsf/KqExy1MG8VQr8Bv7Irs4wVuhzbNAhJTPZwL7Cr3WyaXeaFjAtfsLstouPQI0A==
+    size: 78300423
+path: Beamzy Setup 0.1.52.exe
 sha512: >-
-  Ljs3L5kTODMX8PGK9f04X3nlvWjjccicjfyfn5JpfJ3/WIOU5oAHHvQUi1uQWM0OEMOJ2Ag0hDcAfaDHnX+7Ww==
-releaseDate: '2026-08-24T22:55:55.484Z'
-releaseNotes: Re-add current update feed after trimming binary history
+  Snr3On9Ekt8M+QfvgHGFcGsf/KqExy1MG8VQr8Bv7Irs4wVuhzbNAhJTPZwL7Cr3WyaXeaFjAtfsLstouPQI0A==
+releaseDate: '2026-08-24T23:06:12.634Z'
+releaseNotes: |-
+  Add a script for the periodic update-history trim
+
+  Documents and automates the git-filter-repo dance used to shrink .git
+  back down (each release adds ~150-250MB of binaries under updates/
+  that never get cleaned up otherwise). The final force-push is left to
+  the user to run themselves — Claude Code won't run that unattended.
