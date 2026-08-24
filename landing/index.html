@@ -77,7 +77,6 @@
   .brand { display: flex; align-items: center; gap: 9px; margin-right: auto; text-decoration: none; }
   .brand .mark {
     width: 26px; height: 26px; border-radius: 8px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     flex-shrink: 0;
   }
   .brand .word { font-weight: 800; font-size: 16px; letter-spacing: -0.3px; }
@@ -367,11 +366,10 @@
   .bottom-cta .sub { color: var(--text-dim); font-size: 14.5px; margin: 0 0 26px; }
   .cta-mark {
     width: 46px; height: 46px; border-radius: 13px; margin: 0 auto 20px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
     box-shadow: 0 10px 28px rgba(255, 184, 0, 0.35);
     display: flex; align-items: center; justify-content: center;
   }
-  .cta-mark svg { width: 22px; height: 22px; }
+  .cta-mark svg { width: 46px; height: 46px; border-radius: 13px; }
   .download-count {
     display: inline-flex; align-items: center; gap: 7px;
     margin-top: 22px; padding: 7px 15px;
@@ -416,7 +414,7 @@
   <div class="nav-shell" id="navShell">
     <nav>
       <a class="brand" href="#top">
-        <span class="mark"></span>
+        <svg class="mark" viewBox="0 0 1024 1024" width="26" height="26"><rect width="1024" height="1024" rx="230" fill="#0d0d10"/><g fill="#FFD60A"><g transform="translate(575.5,575.5) rotate(-45)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g><g transform="translate(448.5,448.5) rotate(135)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g></g></svg>
         <span class="word">Beamzy</span>
       </a>
       <a class="nav-link" href="#features">Features</a>
@@ -601,13 +599,19 @@
     <section class="section" style="padding-top: 10px;">
       <div class="bottom-cta">
         <div class="cta-mark">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4" stroke="#14100a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg viewBox="0 0 1024 1024" width="46" height="46"><rect width="1024" height="1024" rx="230" fill="#0d0d10"/><g fill="#FFD60A"><g transform="translate(575.5,575.5) rotate(-45)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g><g transform="translate(448.5,448.5) rotate(135)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g></g></svg>
         </div>
         <h2>Ready to send your first file?</h2>
         <p class="sub">Grab it for your Mac or Windows machine, it takes under a minute to set up.</p>
         <div class="downloads">
-          <a class="btn primary" href="https://swiftsend-cfxh.onrender.com/downloads/mac">Download for Mac</a>
-          <a class="btn secondary" href="https://swiftsend-cfxh.onrender.com/downloads/win">Download for Windows</a>
+          <a class="btn primary" href="https://swiftsend-cfxh.onrender.com/downloads/mac">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.673-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.9-1.454 2.338-1.271 3.714 1.338.104 2.715-.688 3.558-1.702" fill="currentColor"/></svg>
+            Download for Mac
+          </a>
+          <a class="btn secondary" href="https://swiftsend-cfxh.onrender.com/downloads/win">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M3 5.5L10.5 4.4V11.5H3V5.5ZM11.5 4.3L21 3V11.4H11.5V4.3ZM3 12.5H10.5V19.6L3 18.5V12.5ZM11.5 12.5H21V21L11.5 19.7V12.5Z" fill="currentColor"/></svg>
+            Download for Windows
+          </a>
         </div>
         <div class="download-count" id="downloadCount"></div>
       </div>
