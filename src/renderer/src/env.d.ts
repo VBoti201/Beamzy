@@ -57,6 +57,10 @@ declare global {
       historyRemove: (args: { id: string }) => Promise<import('./types').HistoryEntry[]>
       historyOpen: (args: { filePath: string }) => Promise<string>
       onHistoryUpdate: (cb: (entries: import('./types').HistoryEntry[]) => void) => () => void
+      relayApprovePairing: (args: { requestId: string }) => Promise<void>
+      relayRejectPairing: (args: { requestId: string }) => Promise<void>
+      relayKickDevice: (args: { deviceId: string }) => Promise<void>
+      onPairingRequest: (cb: (req: import('./types').PairingRequest) => void) => () => void
       onAppReady: (cb: (data: unknown) => void) => () => void
       onPeersUpdate: (cb: (peers: import('./types').LanPeer[]) => void) => () => void
       onRelayPeersUpdate: (cb: (peers: import('./types').RelayPeer[]) => void) => () => void

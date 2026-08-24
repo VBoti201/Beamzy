@@ -87,11 +87,19 @@ export interface RelayHistoryEvent {
   size: number
 }
 
+export interface PairingRequest {
+  requestId: string
+  deviceId: string
+  name: string
+  platform?: string
+}
+
 interface RelayClientCallbacks {
   onPeers: (peers: RelayPeer[]) => void
   onProgress: (p: RelayTransferProgress) => void
   onStatus: (status: RelayStatus) => void
   onHistory: (e: RelayHistoryEvent) => void
+  onPairingRequest: (req: PairingRequest) => void
 }
 
 export class RelayClient {
@@ -143,7 +151,10 @@ export class RelayClient {
     const ws = new WebSocket(target)
     this.ws = ws
 
-    ws.on('open', () => this.callbacks.onStatus('connected'))
+    // The socket is open, but not yet admitted to the room — a brand new
+    // device may need another admitted device to approve it first. Status
+    // flips to 'connected' only once the server sends 'pairing-admitted'.
+    ws.on('open', () => this.callbacks.onStatus('connecting'))
     ws.on('message', (data) => this.handleMessage(data.toString()))
     ws.on('close', () => {
       this.callbacks.onStatus('disconnected')
@@ -192,7 +203,17 @@ export class RelayClient {
   }
 
   private handleMessage(raw: string): void {
-    let msg: { type: string; peers?: RelayPeer[]; from?: string; message?: string; payload?: Record<string, unknown> }
+    let msg: {
+      type: string
+      peers?: RelayPeer[]
+      from?: string
+      message?: string
+      payload?: Record<string, unknown>
+      requestId?: string
+      deviceId?: string
+      name?: string
+      platform?: string
+    }
     try {
       msg = JSON.parse(raw)
     } catch {
@@ -207,6 +228,40 @@ export class RelayClient {
       return
     }
     if (msg.type === 'error') {
+      return
+    }
+    if (msg.type === 'pairing-admitted') {
+      this.callbacks.onStatus('connected')
+      return
+    }
+    if (msg.type === 'pairing-pending') {
+      this.callbacks.onStatus('connecting')
+      return
+    }
+    if (msg.type === 'pairing-request' && msg.requestId && msg.deviceId) {
+      this.callbacks.onPairingRequest({
+        requestId: msg.requestId,
+        deviceId: msg.deviceId,
+        name: msg.name || 'Unknown device',
+        platform: msg.platform
+      })
+      return
+    }
+    if (msg.type === 'pairing-timeout') {
+      // Nobody happened to be around to approve this time — a plain
+      // reconnect attempt in a few seconds gives another chance rather
+      // than requiring the user to notice and manually retry.
+      this.callbacks.onStatus('error')
+      return
+    }
+    if (msg.type === 'pairing-rejected' || msg.type === 'kicked') {
+      // A deliberate reject/kick from another device — auto-reconnecting
+      // every few seconds would just spam that device with the same
+      // approval prompt again and again. Stop until the user explicitly
+      // re-enables remote access or re-pairs. disconnect() removes this
+      // socket's listeners before closing it, so the normal
+      // ws.on('close') reconnect path never fires for this case.
+      this.disconnect()
       return
     }
     if (msg.type !== 'relay' || !msg.from || !msg.payload) return
@@ -562,5 +617,22 @@ export class RelayClient {
         }
       }, 15000)
     })
+  }
+
+  private sendControl(obj: Record<string, unknown>): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
+    this.ws.send(JSON.stringify(obj))
+  }
+
+  approvePairing(requestId: string): void {
+    this.sendControl({ type: 'pairing-approve', requestId })
+  }
+
+  rejectPairing(requestId: string): void {
+    this.sendControl({ type: 'pairing-reject', requestId })
+  }
+
+  kickDevice(deviceId: string): void {
+    this.sendControl({ type: 'kick', deviceId })
   }
 }

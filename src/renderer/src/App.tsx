@@ -4,7 +4,17 @@ import Splash from './components/Splash'
 import Onboarding from './components/Onboarding'
 import Dashboard from './components/Dashboard'
 import UpdateBanner from './components/UpdateBanner'
-import type { AppConfig, LanPeer, PeerInfo, RelayPeer, RelayStatus, TransferProgress, UpdateStatus } from './types'
+import PairingRequestModal from './components/PairingRequestModal'
+import type {
+  AppConfig,
+  LanPeer,
+  PairingRequest,
+  PeerInfo,
+  RelayPeer,
+  RelayStatus,
+  TransferProgress,
+  UpdateStatus
+} from './types'
 
 type Stage = 'loading' | 'onboarding' | 'app'
 
@@ -16,6 +26,7 @@ export default function App(): JSX.Element {
   const [relayStatus, setRelayStatus] = useState<RelayStatus>('disconnected')
   const [transfers, setTransfers] = useState<TransferProgress[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
+  const [pairingQueue, setPairingQueue] = useState<PairingRequest[]>([])
 
   useEffect(() => {
     let mounted = true
@@ -67,6 +78,18 @@ export default function App(): JSX.Element {
   useEffect(() => {
     return window.api.onUpdateStatus((s) => setUpdateStatus(s))
   }, [])
+
+  useEffect(() => {
+    return window.api.onPairingRequest((req) => setPairingQueue((prev) => [...prev, req]))
+  }, [])
+
+  const respondToPairing = (approve: boolean): void => {
+    const current = pairingQueue[0]
+    if (!current) return
+    if (approve) window.api.relayApprovePairing({ requestId: current.requestId })
+    else window.api.relayRejectPairing({ requestId: current.requestId })
+    setPairingQueue((prev) => prev.slice(1))
+  }
 
   const handleOnboarded = useCallback((cfg: AppConfig) => {
     setConfig(cfg)
@@ -120,6 +143,16 @@ export default function App(): JSX.Element {
         )}
       </AnimatePresence>
       {stage === 'app' && <UpdateBanner status={updateStatus} />}
+      <AnimatePresence>
+        {pairingQueue[0] && (
+          <PairingRequestModal
+            key={pairingQueue[0].requestId}
+            request={pairingQueue[0]}
+            onApprove={() => respondToPairing(true)}
+            onReject={() => respondToPairing(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

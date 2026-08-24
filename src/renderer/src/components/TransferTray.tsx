@@ -82,9 +82,10 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
             <motion.div
               key={t.transferId}
               layout
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 40 }}
+              initial={{ opacity: 0, x: 60, scale: 0.85 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 40, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 340, damping: 24 }}
               className="card"
               style={{ padding: 12 }}
               onMouseEnter={() => {

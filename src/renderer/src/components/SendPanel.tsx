@@ -87,6 +87,8 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
         onDrop={onDrop}
         className="card"
         style={{
+          position: 'relative',
+          overflow: 'hidden',
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
@@ -99,6 +101,35 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
         }}
         onClick={pickFiles}
       >
+        <AnimatePresence>
+          {sending && (
+            <motion.div
+              key="hyperspeed"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+            >
+              {Array.from({ length: 7 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ x: '-40%', opacity: 0 }}
+                  animate={{ x: '140%', opacity: [0, 1, 0] }}
+                  transition={{ duration: 0.45, repeat: Infinity, delay: i * 0.08, ease: 'easeIn' }}
+                  style={{
+                    position: 'absolute',
+                    top: `${8 + i * 12}%`,
+                    left: 0,
+                    width: '35%',
+                    height: 2,
+                    borderRadius: 2,
+                    background: 'linear-gradient(90deg, transparent, var(--accent), transparent)'
+                  }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
         <motion.img
           src={sendIcon}
           alt=""
@@ -203,7 +234,7 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
           </AnimatePresence>
         </div>
         <button className="btn" disabled={!files.length || !destFolderId || sending} onClick={send}>
-          {sending ? 'Sending…' : `Send (${files.length})`}
+          {sending ? 'Sending…' : files.length ? `Send (${files.length})` : 'Send'}
         </button>
       </div>
     </div>

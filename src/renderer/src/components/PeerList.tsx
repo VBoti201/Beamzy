@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import type { PeerInfo } from '../types'
-import { GlobeIcon } from '../icons'
+import { GlobeIcon, TrashIcon } from '../icons'
 import macIcon from '../assets/platform/mac.svg'
 import windowsIcon from '../assets/platform/windows.svg'
 
@@ -36,13 +36,16 @@ export default function PeerList({
           </motion.div>
         )}
         {peers.map((p) => (
-          <motion.button
+          <motion.div
             key={p.id}
             layout
+            role="button"
+            tabIndex={0}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -10 }}
             onClick={() => onSelect(p.id)}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelect(p.id)}
             className="card"
             style={{
               display: 'flex',
@@ -113,7 +116,20 @@ export default function PeerList({
                 )}
               </div>
             </div>
-          </motion.button>
+            {p.transport === 'relay' && (
+              <button
+                className="btn secondary"
+                style={{ padding: '4px 6px', flexShrink: 0, marginLeft: 'auto' }}
+                title="Disconnect this device"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  window.api.relayKickDevice({ deviceId: p.id })
+                }}
+              >
+                <TrashIcon size={13} />
+              </button>
+            )}
+          </motion.div>
         ))}
       </AnimatePresence>
     </div>

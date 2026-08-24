@@ -72,6 +72,13 @@ export interface TransferProgress {
   error?: string
 }
 
+export interface PairingRequest {
+  requestId: string
+  deviceId: string
+  name: string
+  platform?: string
+}
+
 export interface HistoryEntry {
   id: string
   fileName: string

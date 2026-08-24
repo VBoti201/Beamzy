@@ -28,6 +28,14 @@ const api = {
     ipcRenderer.on('history:update', listener)
     return () => ipcRenderer.removeListener('history:update', listener)
   },
+  relayApprovePairing: (args: unknown) => ipcRenderer.invoke('relay:pairing-approve', args),
+  relayRejectPairing: (args: unknown) => ipcRenderer.invoke('relay:pairing-reject', args),
+  relayKickDevice: (args: unknown) => ipcRenderer.invoke('relay:kick-device', args),
+  onPairingRequest: (cb: (req: unknown) => void) => {
+    const listener = (_e: unknown, req: unknown): void => cb(req)
+    ipcRenderer.on('relay:pairing-request', listener)
+    return () => ipcRenderer.removeListener('relay:pairing-request', listener)
+  },
   installUpdate: () => ipcRenderer.invoke('update:install'),
   checkForUpdates: () => ipcRenderer.invoke('update:check'),
   getAppVersion: () => ipcRenderer.invoke('update:get-version'),

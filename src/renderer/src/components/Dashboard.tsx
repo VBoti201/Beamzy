@@ -5,7 +5,7 @@ import DeviceView from './DeviceView'
 import TransferTray from './TransferTray'
 import RecentActivity from './RecentActivity'
 import SettingsModal from './SettingsModal'
-import { GearIcon, RadarIcon, SidebarToggleIcon } from '../icons'
+import { GearIcon, RadarIcon, SidebarToggleIcon, UserIcon } from '../icons'
 import type { AppConfig, PeerInfo, RelayStatus, TransferProgress, UpdateStatus } from '../types'
 
 export default function Dashboard({
@@ -36,27 +36,34 @@ export default function Dashboard({
   const sidebarContent = (
     <>
       <div className="titlebar-spacer" />
-      <div style={{ padding: '0 16px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ minWidth: 0 }}>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 15,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {config.deviceName}
-          </div>
-          <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>This device</div>
+      <div style={{ padding: '0 16px 12px', minWidth: 0 }}>
+        <div
+          style={{
+            fontWeight: 700,
+            fontSize: 15,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {config.deviceName}
         </div>
-        <button className="btn secondary" style={{ padding: '6px 10px', flexShrink: 0 }} onClick={() => setSettingsOpen(true)}>
-          <GearIcon size={16} />
-        </button>
+        <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>This device</div>
       </div>
       <PeerList peers={peers} selectedId={selectedPeerId} onSelect={setSelectedPeerId} />
       <RecentActivity />
+      <div style={{ padding: 12, borderTop: '1px solid var(--card-border)', display: 'flex', gap: 8, flexShrink: 0 }}>
+        <button
+          className="btn secondary"
+          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start', padding: '8px 10px' }}
+        >
+          <UserIcon size={16} />
+          <span style={{ fontSize: 13 }}>Profile</span>
+        </button>
+        <button className="btn secondary" style={{ padding: '8px 10px', flexShrink: 0 }} onClick={() => setSettingsOpen(true)}>
+          <GearIcon size={16} />
+        </button>
+      </div>
     </>
   )
 

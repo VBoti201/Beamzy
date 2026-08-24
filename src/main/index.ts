@@ -49,7 +49,8 @@ const relayClient = new RelayClient({
   onPeers: (peers) => sendToWindow('relay:peers-update', peers),
   onStatus: (status) => sendToWindow('relay:status-update', status),
   onProgress: (p) => sendToWindow('transfer:progress', p),
-  onHistory: (e) => recordHistory(e)
+  onHistory: (e) => recordHistory(e),
+  onPairingRequest: (req) => sendToWindow('relay:pairing-request', req)
 })
 
 function syncRelayClient(cfg: ReturnType<typeof getConfig>): void {
@@ -152,15 +153,27 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('before-quit', () => {
+function cleanupBeforeQuit(): void {
   discovery?.stop()
   closeServer?.()
   relayClient.disconnect()
-})
+}
+
+app.on('before-quit', cleanupBeforeQuit)
 
 ipcMain.handle('config:get', () => getConfig())
 
-ipcMain.handle('update:install', () => installUpdateNow())
+ipcMain.handle('update:install', () => {
+  // quitAndInstall's quit path doesn't reliably wait for 'before-quit' to
+  // finish (the installer can launch and the process exit almost
+  // simultaneously on Windows) — disconnect explicitly first so the relay
+  // sees a clean close and the other device's peer list updates right
+  // away, instead of only after a stale-connection timeout. The short
+  // delay gives the WebSocket close frame a moment to actually leave the
+  // machine before the process (and its sockets) get torn down for real.
+  cleanupBeforeQuit()
+  setTimeout(() => installUpdateNow(), 300)
+})
 
 ipcMain.handle('update:check', () => checkForUpdatesNow())
 
@@ -196,6 +209,12 @@ ipcMain.handle('relay:regenerate-code', async () => {
   syncRelayClient(updated)
   return updated.relay
 })
+
+ipcMain.handle('relay:pairing-approve', (_e, args: { requestId: string }) => relayClient.approvePairing(args.requestId))
+
+ipcMain.handle('relay:pairing-reject', (_e, args: { requestId: string }) => relayClient.rejectPairing(args.requestId))
+
+ipcMain.handle('relay:kick-device', (_e, args: { deviceId: string }) => relayClient.kickDevice(args.deviceId))
 
 ipcMain.handle('relay:pair', (_e, args: { code: string }) => {
   const cfg = getConfig()

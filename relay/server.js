@@ -11,8 +11,18 @@
 // Because the pairing code is short (easy to type by hand) rather than a
 // long UUID, this file also rate-limits new connection attempts per IP —
 // see `connectionAttempts` below — to keep brute-forcing a room impractical.
+//
+// Trust model: the FIRST device to ever connect with a given pairId
+// bootstraps that room and is auto-admitted (there's no one else to ask).
+// Every device after that is held pending and announced to the
+// already-connected member(s), who must explicitly approve or reject it
+// before it can see peers or exchange files — typing the right code alone
+// isn't enough. Once approved, a deviceId is remembered for the room and
+// reconnects freely without being re-prompted, until an admitted device
+// kicks it.
 
 const http = require('http')
+const { randomUUID } = require('crypto')
 const { WebSocketServer } = require('ws')
 
 const PORT = process.env.PORT || 8787
@@ -20,9 +30,18 @@ const MAX_PAYLOAD = 2 * 1024 * 1024 // 2MB per frame (chunks are sent as ~256KB 
 const MIN_PAIR_ID_LENGTH = 5 // e.g. "AB3-K9Q" without the dash is 6 chars
 const RATE_LIMIT_WINDOW_MS = 60 * 1000
 const RATE_LIMIT_MAX_ATTEMPTS = 20 // new connection attempts per IP per window
+const PAIRING_REQUEST_TIMEOUT_MS = 60 * 1000
 
-// pairId -> Map<deviceId, { ws, name }>
+// pairId -> Map<deviceId, { ws, name, platform }> — currently-connected,
+// admitted members only.
 const rooms = new Map()
+
+// pairId -> Set<deviceId> ever approved for this room. Kept separate from
+// `rooms` so approval survives a lone device disconnecting/reconnecting.
+const approvedDevices = new Map()
+
+// pairId -> Map<requestId, { deviceId, name, platform, ws, timer }>
+const pendingJoins = new Map()
 
 // ip -> timestamps[] of recent connection attempts
 const connectionAttempts = new Map()
@@ -44,6 +63,15 @@ function roomFor(pairId) {
   return room
 }
 
+function pendingJoinsFor(pairId) {
+  let m = pendingJoins.get(pairId)
+  if (!m) {
+    m = new Map()
+    pendingJoins.set(pairId, m)
+  }
+  return m
+}
+
 function broadcastPresence(pairId) {
   const room = rooms.get(pairId)
   if (!room) return
@@ -62,6 +90,87 @@ function send(ws, obj) {
   if (ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify(obj))
   }
+}
+
+function admitDevice(pairId, deviceId, info) {
+  const room = roomFor(pairId)
+  room.set(deviceId, info)
+  send(info.ws, { type: 'pairing-admitted' })
+  broadcastPresence(pairId)
+
+  info.ws.on('message', (data) => {
+    let msg
+    try {
+      msg = JSON.parse(data.toString())
+    } catch {
+      return
+    }
+    if (msg.type === 'relay' && typeof msg.to === 'string') {
+      const target = room.get(msg.to)
+      if (!target) {
+        send(info.ws, { type: 'error', message: `peer ${msg.to} is not online` })
+        return
+      }
+      send(target.ws, { type: 'relay', from: deviceId, payload: msg.payload })
+      return
+    }
+    if (msg.type === 'pairing-approve' && typeof msg.requestId === 'string') {
+      approvePending(pairId, msg.requestId)
+      return
+    }
+    if (msg.type === 'pairing-reject' && typeof msg.requestId === 'string') {
+      rejectPending(pairId, msg.requestId, 'Rejected by another device')
+      return
+    }
+    if (msg.type === 'kick' && typeof msg.deviceId === 'string') {
+      kickDevice(pairId, msg.deviceId)
+      return
+    }
+  })
+
+  info.ws.on('close', () => {
+    room.delete(deviceId)
+    if (room.size === 0) rooms.delete(pairId)
+    else broadcastPresence(pairId)
+  })
+}
+
+function approvePending(pairId, requestId) {
+  const pending = pendingJoins.get(pairId)
+  const entry = pending && pending.get(requestId)
+  if (!entry) return
+  clearTimeout(entry.timer)
+  pending.delete(requestId)
+  let approved = approvedDevices.get(pairId)
+  if (!approved) {
+    approved = new Set()
+    approvedDevices.set(pairId, approved)
+  }
+  approved.add(entry.deviceId)
+  admitDevice(pairId, entry.deviceId, { ws: entry.ws, name: entry.name, platform: entry.platform })
+}
+
+function rejectPending(pairId, requestId, reason) {
+  const pending = pendingJoins.get(pairId)
+  const entry = pending && pending.get(requestId)
+  if (!entry) return
+  clearTimeout(entry.timer)
+  pending.delete(requestId)
+  send(entry.ws, { type: 'pairing-rejected', message: reason })
+  entry.ws.close(4009, reason)
+}
+
+function kickDevice(pairId, deviceId) {
+  const approved = approvedDevices.get(pairId)
+  if (approved) approved.delete(deviceId)
+  const room = rooms.get(pairId)
+  const info = room && room.get(deviceId)
+  if (!info) return
+  send(info.ws, { type: 'kicked' })
+  room.delete(deviceId)
+  if (room.size === 0) rooms.delete(pairId)
+  else broadcastPresence(pairId)
+  info.ws.close(4010, 'removed by another device')
 }
 
 const httpServer = http.createServer((req, res) => {
@@ -102,30 +211,53 @@ wss.on('connection', (ws, req) => {
     return
   }
 
-  const room = roomFor(pairId)
-  room.set(deviceId, { ws, name, platform })
-  broadcastPresence(pairId)
+  const approved = approvedDevices.get(pairId)
 
-  ws.on('message', (data) => {
-    let msg
-    try {
-      msg = JSON.parse(data.toString())
-    } catch {
-      return
-    }
-    if (msg.type !== 'relay' || typeof msg.to !== 'string') return
-    const target = room.get(msg.to)
-    if (!target) {
-      send(ws, { type: 'error', message: `peer ${msg.to} is not online` })
-      return
-    }
-    send(target.ws, { type: 'relay', from: deviceId, payload: msg.payload })
-  })
+  if (!approved) {
+    // Nobody has ever paired on this code — this device bootstraps the
+    // room, nothing to approve against.
+    approvedDevices.set(pairId, new Set([deviceId]))
+    admitDevice(pairId, deviceId, { ws, name, platform })
+    return
+  }
+
+  if (approved.has(deviceId)) {
+    admitDevice(pairId, deviceId, { ws, name, platform })
+    return
+  }
+
+  const room = rooms.get(pairId)
+  if (!room || room.size === 0) {
+    // A previously-approved device set exists but nobody is online right
+    // now to approve a new one — admit it rather than permanently locking
+    // the pair out of their own room while every admitted device happens
+    // to be offline at once.
+    approved.add(deviceId)
+    admitDevice(pairId, deviceId, { ws, name, platform })
+    return
+  }
+
+  const requestId = randomUUID()
+  const pending = pendingJoinsFor(pairId)
+  const timer = setTimeout(() => {
+    pending.delete(requestId)
+    send(ws, { type: 'pairing-timeout' })
+    ws.close(4008, 'pairing request timed out')
+  }, PAIRING_REQUEST_TIMEOUT_MS)
+  pending.set(requestId, { deviceId, name, platform, ws, timer })
+
+  for (const info of room.values()) {
+    send(info.ws, { type: 'pairing-request', requestId, deviceId, name, platform })
+  }
+  send(ws, { type: 'pairing-pending' })
 
   ws.on('close', () => {
-    room.delete(deviceId)
-    if (room.size === 0) rooms.delete(pairId)
-    else broadcastPresence(pairId)
+    const p = pendingJoins.get(pairId)
+    const entry = p && p.get(requestId)
+    if (entry) {
+      clearTimeout(entry.timer)
+      p.delete(requestId)
+    }
   })
 })
 

@@ -78,6 +78,15 @@ export function TrashIcon({ size = 14, style, color = 'currentColor' }: IconProp
   )
 }
 
+export function UserIcon({ size = 16, style, color = 'currentColor' }: IconProps): JSX.Element {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
+      <circle cx="12" cy="8" r="3.6" stroke={color} strokeWidth="1.7" />
+      <path d="M4.5 20c1.2-4 4-6 7.5-6s6.3 2 7.5 6" stroke={color} strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function GlobeIcon({ size = 12, style, color = 'currentColor' }: IconProps): JSX.Element {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={style}>
