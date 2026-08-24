@@ -34,6 +34,8 @@ Amikor mindkét géped ugyanazon a wifin/routeren van, az app a fenti közvetlen
 
 A forráskód egy **privát** GitHub repóban van (`github.com/VBoti201/beamzy`) — ez csak verziókövetésre/biztonsági mentésre való, nincs köze ahhoz, honnan töltik le a felhasználók az app-frissítéseket. Mivel privát repo release-eit nem tudja letölteni egy telepített app (token nélkül), az automatikus frissítés (lásd `src/main/updater.ts`) **nem GitHubról megy**, hanem egy általad üzemeltetett, sima statikus fájlszerverről (`electron-updater` "generic" provider, lásd a `package.json` `build.publish.url`-jét) — ugyanarra a VPS-re rakhatod, mint a relay-t.
 
+> **Megjegyzés**: minden kiadott verzió egy új commitban adja hozzá az `updates/` alá a bináris fájlokat (~150-250 MB/verzió), a régieket viszont sosem törli a git history — ez lassan, de folyamatosan növeli a `.git` méretét, hiába csak a legutolsó verzió számít ténylegesen. Ha ez már zavaróan nagyra nőtt (`du -sh .git`), a `scripts/trim-update-history.sh` egy paranccsal kitisztítja (csak a jelenlegi verzió binárisait tartja meg a history-ban) — a szkript végén jelzett `git push --force`-ot viszont neked kell lefuttatnod egy sima terminálban, mert ezt Claude Code biztonsági okból nem futtatja le felügyelet nélkül.
+
 ## Fejlesztői indítás
 
 ```bash
