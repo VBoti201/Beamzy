@@ -200,12 +200,20 @@
   .m-peer span { font-size: 12.5px; font-weight: 700; color: #ffd60a; }
   .m-activity { padding: 4px 14px; font-size: 10.5px; color: #6a6a62; text-transform: uppercase; letter-spacing: 0.4px; }
   .m-foot {
-    margin-top: auto; padding: 10px 12px; border-top: 1px solid rgba(255, 255, 255, 0.06);
-    display: flex; align-items: center; justify-content: space-between;
+    margin-top: auto; padding: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex; align-items: center; gap: 8px;
   }
-  .m-foot .space { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #cfcfc7; }
-  .m-foot .space svg { flex-shrink: 0; }
-  .m-foot .gear { width: 22px; height: 22px; border-radius: 7px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; }
+  .m-storage {
+    flex: 1; padding: 9px 10px; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .m-storage .row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .m-storage .row svg { flex-shrink: 0; }
+  .m-storage .label { font-size: 11px; color: #9a9a91; }
+  .m-storage .free { font-size: 11px; color: #9a9a91; margin-left: auto; white-space: nowrap; }
+  .m-storage .bar { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+  .m-storage .bar i { display: block; height: 100%; width: 62%; border-radius: 3px; background: linear-gradient(135deg, #ffd60a, #ffb800); }
+  .m-gear { width: 34px; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.06); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
   .m-main { flex: 1; min-width: 0; padding: 14px 18px 18px; }
   .m-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
@@ -451,12 +459,16 @@
             <div class="m-peer"><span class="ic"></span><span>BeamzyPC</span></div>
             <div class="m-activity">Recent activity</div>
             <div class="m-foot">
-              <div class="space">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="15" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 14.5h17" stroke="currentColor" stroke-width="1.7"/></svg>
-                412 GB free
+              <div class="m-storage">
+                <div class="row">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="15" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 14.5h17" stroke="currentColor" stroke-width="1.7"/></svg>
+                  <span class="label">Storage</span>
+                  <span class="free">412 GB free</span>
+                </div>
+                <div class="bar"><i></i></div>
               </div>
-              <div class="gear">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>
+              <div class="m-gear">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/></svg>
               </div>
             </div>
           </div>
