@@ -11,6 +11,7 @@ declare global {
       pickFiles: () => Promise<string[]>
       isDirectory: (path: string) => Promise<boolean>
       zipDirectory: (path: string) => Promise<string>
+      deleteFile: (path: string) => Promise<void>
       getPeers: () => Promise<import('./types').LanPeer[]>
       remoteList: (args: {
         host: string

@@ -4,7 +4,6 @@ import type { AppConfig, PeerInfo, RemoteEntry } from '../types'
 import { folderIconFor } from '../folderIcon'
 import { FileIcon } from '../icons'
 import FolderDropdown from './FolderDropdown'
-import receiveIcon from '../assets/btn-receive.svg'
 
 function formatBytes(n: number): string {
   if (!n) return '0 B'
@@ -97,7 +96,6 @@ export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <img src={receiveIcon} alt="" style={{ width: 22, height: 22, flexShrink: 0 }} />
         <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>Save to:</span>
         <FolderDropdown options={config.sharedFolders} value={destId} onChange={setDestId} />
       </div>

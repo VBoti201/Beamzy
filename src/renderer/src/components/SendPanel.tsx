@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, DragEvent } from 'react'
+import { useEffect, useState, useCallback, useRef, DragEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { PeerInfo } from '../types'
 import sendIcon from '../assets/btn-send.svg'
@@ -37,8 +37,19 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   const [dragOver, setDragOver] = useState(false)
   const [sending, setSending] = useState(false)
   const [zipping, setZipping] = useState(false)
+  // Paths of zips SendPanel itself created from a dropped folder — tracked
+  // so they can be cleaned up from the OS temp dir once they're no longer
+  // needed, instead of accumulating there forever.
+  const zippedPaths = useRef<Set<string>>(new Set())
+
+  const cleanupZip = (p: string): void => {
+    if (!zippedPaths.current.has(p)) return
+    zippedPaths.current.delete(p)
+    window.api.deleteFile(p)
+  }
 
   useEffect(() => {
+    files.forEach(cleanupZip)
     setFiles([])
     setPickerOpen(false)
     setTargetsError(false)
@@ -78,7 +89,9 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
         setZipping(true)
         try {
           for (const dir of dirs) {
-            paths.push(await window.api.zipDirectory(dir))
+            const zipPath = await window.api.zipDirectory(dir)
+            zippedPaths.current.add(zipPath)
+            paths.push(zipPath)
           }
         } finally {
           setZipping(false)
@@ -94,7 +107,11 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   }
 
   const removeFile = (index: number): void => {
-    setFiles((prev) => prev.filter((_, i) => i !== index))
+    setFiles((prev) => {
+      const removed = prev[index]
+      if (removed) cleanupZip(removed)
+      return prev.filter((_, i) => i !== index)
+    })
   }
 
   const send = async (): Promise<void> => {
@@ -106,12 +123,16 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
     // real transfer happens in the background/tray, instead of just
     // sitting there inert until it's done.
     setFiles([])
-    if (peer.transport === 'relay') {
-      await window.api.relayPush({ peerId: peer.id, folderId: destFolderId, destRelPath, localFilePaths: toSend })
-    } else {
-      await window.api.pushFiles({ host: peer.host!, port: peer.port!, folderId: destFolderId, destRelPath, localFilePaths: toSend })
+    try {
+      if (peer.transport === 'relay') {
+        await window.api.relayPush({ peerId: peer.id, folderId: destFolderId, destRelPath, localFilePaths: toSend })
+      } else {
+        await window.api.pushFiles({ host: peer.host!, port: peer.port!, folderId: destFolderId, destRelPath, localFilePaths: toSend })
+      }
+    } finally {
+      toSend.forEach(cleanupZip)
+      setSending(false)
     }
-    setSending(false)
   }
 
   return (

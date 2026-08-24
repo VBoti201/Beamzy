@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 const api = {
   isDirectory: (p: string): Promise<boolean> => ipcRenderer.invoke('fs:is-directory', { path: p }),
   zipDirectory: (p: string): Promise<string> => ipcRenderer.invoke('fs:zip-directory', { path: p }),
+  deleteFile: (p: string): Promise<void> => ipcRenderer.invoke('fs:delete-file', { path: p }),
   getConfig: () => ipcRenderer.invoke('config:get'),
   getHostname: () => ipcRenderer.invoke('system:hostname'),
   getDrives: () => ipcRenderer.invoke('system:drives'),

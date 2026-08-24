@@ -353,6 +353,19 @@ ipcMain.handle('fs:is-directory', (_e, args: { path: string }) => {
 
 ipcMain.handle('fs:zip-directory', (_e, args: { path: string }) => zipDirectory(args.path))
 
+ipcMain.handle('fs:delete-file', (_e, args: { path: string }) => {
+  // Scoped to the app's own temp dir (where zipDirectory writes) so this
+  // can't be turned into an arbitrary-file-delete primitive.
+  const tempRoot = path.join(app.getPath('temp'), path.sep)
+  const resolved = path.resolve(args.path)
+  if (!resolved.startsWith(tempRoot)) return
+  try {
+    fs.unlinkSync(resolved)
+  } catch {
+    // already gone or never existed — nothing to clean up
+  }
+})
+
 ipcMain.handle('dialog:pickFiles', async () => {
   const result = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })
   if (result.canceled) return []
