@@ -26,31 +26,41 @@ export default function SettingsModal({
   const [saving, setSaving] = useState(false)
   const [confirmingDiscard, setConfirmingDiscard] = useState(false)
 
-  const changeTheme = async (t: typeof theme): Promise<void> => {
+  // Only previews live (so you can see it while picking) — not persisted
+  // until Save, same as name/folders below, so closing without saving can
+  // cleanly revert it.
+  const changeTheme = (t: typeof theme): void => {
     setTheme(t)
     document.documentElement.dataset.theme = t
-    await window.api.updateConfig({ theme: t })
   }
 
   const save = async (): Promise<void> => {
     setSaving(true)
-    const updated = await window.api.updateConfig({ deviceName: name.trim(), sharedFolders: folders })
-    onSaved({ ...updated, relay, theme })
+    const updated = await window.api.updateConfig({ deviceName: name.trim(), sharedFolders: folders, theme })
+    onSaved({ ...updated, relay })
     setSaving(false)
     onClose()
   }
 
-  // Relay/theme changes apply immediately as you make them, but name and
-  // folders only take effect on Save — closing without saving would
+  // Relay changes apply immediately as you make them, but appearance, name,
+  // and folders only take effect on Save — closing without saving would
   // silently throw those away, so ask first.
-  const isDirty = name.trim() !== config.deviceName || JSON.stringify(folders) !== JSON.stringify(config.sharedFolders)
+  const isDirty =
+    theme !== config.theme ||
+    name.trim() !== config.deviceName ||
+    JSON.stringify(folders) !== JSON.stringify(config.sharedFolders)
+
+  const discardAndClose = (): void => {
+    document.documentElement.dataset.theme = config.theme
+    onClose()
+  }
 
   const requestClose = (): void => {
     if (isDirty) {
       setConfirmingDiscard(true)
       return
     }
-    onClose()
+    discardAndClose()
   }
 
   return (
@@ -157,13 +167,13 @@ export default function SettingsModal({
             >
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Discard unsaved changes?</div>
               <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 18 }}>
-                Your device name or shared-folder edits haven&apos;t been saved yet.
+                Your appearance, name, or shared-folder edits haven&apos;t been saved yet.
               </div>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
                 <button className="btn secondary" onClick={() => setConfirmingDiscard(false)}>
                   Keep editing
                 </button>
-                <button className="btn" onClick={onClose}>
+                <button className="btn" onClick={discardAndClose}>
                   Discard
                 </button>
               </div>
