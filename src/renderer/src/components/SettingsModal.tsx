@@ -24,6 +24,7 @@ export default function SettingsModal({
   const [relay, setRelay] = useState(config.relay)
   const [theme, setTheme] = useState(config.theme)
   const [saving, setSaving] = useState(false)
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false)
 
   const changeTheme = async (t: typeof theme): Promise<void> => {
     setTheme(t)
@@ -45,7 +46,10 @@ export default function SettingsModal({
   const isDirty = name.trim() !== config.deviceName || JSON.stringify(folders) !== JSON.stringify(config.sharedFolders)
 
   const requestClose = (): void => {
-    if (isDirty && !window.confirm('Discard unsaved changes?')) return
+    if (isDirty) {
+      setConfirmingDiscard(true)
+      return
+    }
     onClose()
   }
 
@@ -70,7 +74,7 @@ export default function SettingsModal({
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         className="card"
-        style={{ width: 560, padding: 24, maxHeight: '85vh', overflowY: 'auto' }}
+        style={{ width: 560, padding: 24, maxHeight: '85vh', overflowY: 'auto', position: 'relative' }}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 style={{ marginTop: 0 }}>Settings</h2>
@@ -129,6 +133,43 @@ export default function SettingsModal({
             {saving ? 'Saving…' : 'Save'}
           </button>
         </div>
+
+        {confirmingDiscard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'var(--modal-backdrop-strong)',
+              borderRadius: 'var(--radius)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="card"
+              style={{ padding: 20, width: 320, textAlign: 'center' }}
+            >
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>Discard unsaved changes?</div>
+              <div style={{ fontSize: 13, color: 'var(--text-dim)', marginBottom: 18 }}>
+                Your device name or shared-folder edits haven&apos;t been saved yet.
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
+                <button className="btn secondary" onClick={() => setConfirmingDiscard(false)}>
+                  Keep editing
+                </button>
+                <button className="btn" onClick={onClose}>
+                  Discard
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </motion.div>
     </motion.div>
   )
