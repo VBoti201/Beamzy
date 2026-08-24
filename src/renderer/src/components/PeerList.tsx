@@ -30,9 +30,11 @@ export default function PeerList({
             exit={{ opacity: 0 }}
             style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}
           >
-            Searching for devices…
+            Searching your network…
             <br />
-            Open Beamzy on your other device too.
+            Open Beamzy on the other device too, it'll show up here on its own.
+            <br />
+            On a different network? Pair with a code in Settings instead.
           </motion.div>
         )}
         {peers.map((p) => (
