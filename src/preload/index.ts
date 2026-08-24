@@ -1,14 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import fs from 'fs'
 
 const api = {
-  isDirectory: (p: string): boolean => {
-    try {
-      return fs.statSync(p).isDirectory()
-    } catch {
-      return false
-    }
-  },
+  isDirectory: (p: string): Promise<boolean> => ipcRenderer.invoke('fs:is-directory', { path: p }),
+  zipDirectory: (p: string): Promise<string> => ipcRenderer.invoke('fs:zip-directory', { path: p }),
   getConfig: () => ipcRenderer.invoke('config:get'),
   getHostname: () => ipcRenderer.invoke('system:hostname'),
   getDrives: () => ipcRenderer.invoke('system:drives'),

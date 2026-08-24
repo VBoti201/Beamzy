@@ -36,7 +36,7 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   const [files, setFiles] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [sending, setSending] = useState(false)
-  const [folderWarning, setFolderWarning] = useState(false)
+  const [zipping, setZipping] = useState(false)
 
   useEffect(() => {
     setFiles([])
@@ -63,20 +63,29 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   const onDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     setDragOver(false)
-    const paths: string[] = []
-    let skipped = false
-    for (const file of Array.from(e.dataTransfer.files)) {
-      const p = window.api.getPathForFile(file)
-      if (!p) continue
-      if (window.api.isDirectory(p)) {
-        skipped = true
-        continue
+    const dropped = Array.from(e.dataTransfer.files)
+      .map((file) => window.api.getPathForFile(file))
+      .filter((p): p is string => !!p)
+
+    void (async (): Promise<void> => {
+      const paths: string[] = []
+      const dirs: string[] = []
+      for (const p of dropped) {
+        if (await window.api.isDirectory(p)) dirs.push(p)
+        else paths.push(p)
       }
-      paths.push(p)
-    }
-    if (paths.length) setFiles((prev) => [...prev, ...paths])
-    setFolderWarning(skipped)
-    if (skipped) setTimeout(() => setFolderWarning(false), 3000)
+      if (dirs.length) {
+        setZipping(true)
+        try {
+          for (const dir of dirs) {
+            paths.push(await window.api.zipDirectory(dir))
+          }
+        } finally {
+          setZipping(false)
+        }
+      }
+      if (paths.length) setFiles((prev) => [...prev, ...paths])
+    })()
   }, [])
 
   const pickFiles = async (): Promise<void> => {
@@ -170,9 +179,7 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
           Sending to {peer.name}
           {peer.transport === 'relay' ? ' (via relay)' : ''}
         </div>
-        {folderWarning && (
-          <div style={{ color: 'var(--danger)', fontSize: 12 }}>Folders can&apos;t be sent, only files</div>
-        )}
+        {zipping && <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>Zipping folder…</div>}
         <div
           style={{ marginTop: 8, maxWidth: '90%', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}
           onClick={(e) => e.stopPropagation()}

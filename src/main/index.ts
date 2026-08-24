@@ -22,6 +22,7 @@ import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './update
 import { generateUniquePairingCode } from './constants'
 import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
 import { isLanDeviceApproved, approveLanDevice, forgetLanDevice } from './lanTrust'
+import { zipDirectory } from './zip'
 
 // bonjour-service's mDNS multicast socket lives deep inside a dependency
 // (multicast-dns -> dgram) where we can't attach our own 'error' listener
@@ -341,6 +342,16 @@ ipcMain.handle('dialog:chooseFolder', async () => {
   if (result.canceled || result.filePaths.length === 0) return null
   return result.filePaths[0]
 })
+
+ipcMain.handle('fs:is-directory', (_e, args: { path: string }) => {
+  try {
+    return fs.statSync(args.path).isDirectory()
+  } catch {
+    return false
+  }
+})
+
+ipcMain.handle('fs:zip-directory', (_e, args: { path: string }) => zipDirectory(args.path))
 
 ipcMain.handle('dialog:pickFiles', async () => {
   const result = await dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })

@@ -9,7 +9,8 @@ declare global {
       updateConfig: (partial: Partial<import('./types').AppConfig>) => Promise<import('./types').AppConfig>
       chooseFolder: () => Promise<string | null>
       pickFiles: () => Promise<string[]>
-      isDirectory: (path: string) => boolean
+      isDirectory: (path: string) => Promise<boolean>
+      zipDirectory: (path: string) => Promise<string>
       getPeers: () => Promise<import('./types').LanPeer[]>
       remoteList: (args: {
         host: string
