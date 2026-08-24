@@ -302,13 +302,23 @@
     background: radial-gradient(520px 260px at 50% 0%, rgba(255, 184, 0, 0.16), transparent 65%), var(--card);
     border: 1px solid var(--card-border);
   }
-  .bottom-cta h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; margin: 0 0 22px; }
+  .bottom-cta h2 { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; margin: 0 0 10px; }
+  .bottom-cta .sub { color: var(--text-dim); font-size: 14.5px; margin: 0 0 26px; }
   .cta-mark {
-    width: 38px; height: 38px; border-radius: 11px; margin: 0 auto 18px;
+    width: 46px; height: 46px; border-radius: 13px; margin: 0 auto 20px;
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    box-shadow: 0 8px 24px rgba(255, 184, 0, 0.3);
+    box-shadow: 0 10px 28px rgba(255, 184, 0, 0.35);
+    display: flex; align-items: center; justify-content: center;
   }
-  .download-count { margin-top: 18px; font-size: 12.5px; color: var(--text-dim); }
+  .cta-mark svg { width: 22px; height: 22px; }
+  .download-count {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 22px; padding: 7px 15px;
+    font-size: 12.5px; color: var(--text-dim);
+    border-radius: 999px; background: var(--card); border: 1px solid var(--card-border);
+  }
+  .download-count .dot { width: 6px; height: 6px; border-radius: 50%; background: #34d399; animation: pulseDot 2s ease-in-out infinite; }
+  .download-count:empty { display: none; }
 
   .watermark {
     position: relative;
@@ -526,8 +536,11 @@
 
     <section class="section" style="padding-top: 10px;">
       <div class="bottom-cta">
-        <div class="cta-mark"></div>
+        <div class="cta-mark">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4" stroke="#14100a" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
         <h2>Ready to send your first file?</h2>
+        <p class="sub">Grab it for your Mac or Windows machine, it takes under a minute to set up.</p>
         <div class="downloads">
           <a class="btn primary" href="https://swiftsend-cfxh.onrender.com/downloads/mac">Download for Mac</a>
           <a class="btn secondary" href="https://swiftsend-cfxh.onrender.com/downloads/win">Download for Windows</a>
@@ -568,8 +581,8 @@
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (!d || !d.total) return;
-          document.getElementById('downloadCount').textContent =
-            d.total.toLocaleString() + (d.total === 1 ? ' download so far' : ' downloads so far');
+          var label = d.total.toLocaleString() + (d.total === 1 ? ' download so far' : ' downloads so far');
+          document.getElementById('downloadCount').innerHTML = '<span class="dot"></span>' + label;
         })
         .catch(function () {});
     })();
