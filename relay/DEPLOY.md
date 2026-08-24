@@ -64,9 +64,10 @@ menet közben, a tényleges forgalom alapján felskálázni.
    `fail2ban` az SSH brute force ellen. Ez minden internetre kitett gépre
    igaz, nem Beamzy-specifikus, de a relay sem ér semmit, ha maga a VPS
    sérül.
-4. **Ha valaha úgy érzed, kiszivároghatott a párosító kódod**, az app
-   Beállításaiban egy kattintással ("Regenerate") újat generálhatsz — a
-   régi azonnal érvénytelen lesz.
+4. **A párosító kód szándékosan állandó és nem generálható újra** — ez
+   megakadályozza, hogy egy kitiltott eszköz egyszerűen új kóddal
+   megkerülje a tiltást. Ha egy kód mégis kiszivárogna, az adott eszközt
+   a `/admin/block` végponton lehet kitiltani (lásd fent).
 
 Összefoglalva: a relay maga (a kódja, a modellje) eleve úgy van megtervezve,
 hogy még ha nyilvánosan elérhető is, önmagában ne jelentsen komoly kockázatot

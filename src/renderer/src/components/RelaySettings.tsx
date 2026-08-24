@@ -51,11 +51,6 @@ export default function RelaySettings({
     }
   }
 
-  const regenerate = async (): Promise<void> => {
-    const updated = await window.api.relayRegenerateCode()
-    onChange(updated)
-  }
-
   const copyCode = async (): Promise<void> => {
     await navigator.clipboard.writeText(relay.pairId)
     setCopied(true)
@@ -105,9 +100,6 @@ export default function RelaySettings({
               />
               <button className="btn secondary" onClick={copyCode}>
                 {copied ? 'Copied!' : 'Copy'}
-              </button>
-              <button className="btn secondary" onClick={regenerate}>
-                Regenerate
               </button>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>

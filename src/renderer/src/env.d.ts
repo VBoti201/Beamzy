@@ -47,7 +47,6 @@ declare global {
       permissionsClear: (args: { deviceId: string; folderId: string }) => Promise<void>
       getPathForFile: (file: File) => string
       relaySetEnabled: (args: { enabled: boolean; url: string }) => Promise<import('./types').RelayConfig>
-      relayRegenerateCode: () => Promise<import('./types').RelayConfig>
       relayPair: (args: { code: string }) => Promise<void>
       relayList: (args: {
         peerId: string

@@ -292,14 +292,6 @@ ipcMain.handle('relay:set-enabled', async (_e, args: { enabled: boolean; url: st
   return updated.relay
 })
 
-ipcMain.handle('relay:regenerate-code', async () => {
-  const cfg = getConfig()
-  const pairId = await generateUniquePairingCode(cfg.relay.url)
-  const updated = updateConfig({ relay: { ...cfg.relay, pairId } })
-  syncRelayClient(updated)
-  return updated.relay
-})
-
 ipcMain.handle('relay:pairing-approve', (_e, args: { requestId: string }) => relayClient.approvePairing(args.requestId))
 
 ipcMain.handle('relay:pairing-reject', (_e, args: { requestId: string }) => relayClient.rejectPairing(args.requestId))

@@ -1,8 +1,8 @@
 // Minimal relay for Beamzy remote transfers.
 //
 // Every device keeps ONE permanent "code" (e.g. "2CC-NSW") as its identity —
-// it doesn't change when you pair with someone, only when you deliberately
-// regenerate it. To connect two devices, one types the other's code into
+// it never changes, by design, so a blocked device can't dodge a ban just by
+// asking for a new one. To connect two devices, one types the other's code into
 // "Connect to a device" and sends a request; the target has to approve it
 // before either side can see the other or exchange files. Once approved,
 // the link is remembered and both devices reconnect straight back into it

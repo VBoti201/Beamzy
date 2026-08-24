@@ -22,7 +22,6 @@ const api = {
   permissionsClear: (args: unknown) => ipcRenderer.invoke('permissions:clear', args),
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   relaySetEnabled: (args: unknown) => ipcRenderer.invoke('relay:set-enabled', args),
-  relayRegenerateCode: () => ipcRenderer.invoke('relay:regenerate-code'),
   relayPair: (args: unknown) => ipcRenderer.invoke('relay:pair', args),
   relayList: (args: unknown) => ipcRenderer.invoke('relay:list', args),
   relayTargets: (args: unknown) => ipcRenderer.invoke('relay:targets', args),
