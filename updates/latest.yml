@@ -1,0 +1,16 @@
+version: 0.1.51
+files:
+  - url: Beamzy Setup 0.1.51.exe
+    sha512: >-
+      5k9i3YjdFyjOaymXiSsBc2CPkm+2mi0kCBCfcsE7PnfZ+jTUmWi+kbjt8cW062TC3IacgTSFr+IiYcvndApbOw==
+    size: 78300436
+path: Beamzy Setup 0.1.51.exe
+sha512: >-
+  5k9i3YjdFyjOaymXiSsBc2CPkm+2mi0kCBCfcsE7PnfZ+jTUmWi+kbjt8cW062TC3IacgTSFr+IiYcvndApbOw==
+releaseDate: '2026-08-24T22:28:30.794Z'
+releaseNotes: |-
+  Give the platform-icon badge a light-mode color
+
+  It was hardcoded near-black regardless of theme, so it stayed dark
+  even in light mode. Now it's dark beige in light mode via a new
+  --platform-badge token, matching the rest of the theme system.

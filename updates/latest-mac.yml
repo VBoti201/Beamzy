@@ -1,0 +1,20 @@
+version: 0.1.51
+files:
+  - url: Beamzy-0.1.51-arm64-mac.zip
+    sha512: >-
+      3uJ4s9Axc/Vvt1lbEncNS8wqIkSSmcZNEoaIrHU0owZaClQAyc0L2l8BpqRd1xdh3Gs4KkTYY8pG+yn3TbijyQ==
+    size: 94537112
+  - url: Beamzy-0.1.51-arm64.dmg
+    sha512: >-
+      UBreOwnf1YTORfZ6uJ0FyvImMde6N1T/DNglfimT3ayZLftaVPk8/fb76k36JtZ/tff7D9ejyplDAjzroTQXQg==
+    size: 98033716
+path: Beamzy-0.1.51-arm64-mac.zip
+sha512: >-
+  3uJ4s9Axc/Vvt1lbEncNS8wqIkSSmcZNEoaIrHU0owZaClQAyc0L2l8BpqRd1xdh3Gs4KkTYY8pG+yn3TbijyQ==
+releaseDate: '2026-08-24T22:27:44.715Z'
+releaseNotes: |-
+  Give the platform-icon badge a light-mode color
+
+  It was hardcoded near-black regardless of theme, so it stayed dark
+  even in light mode. Now it's dark beige in light mode via a new
+  --platform-badge token, matching the rest of the theme system.
