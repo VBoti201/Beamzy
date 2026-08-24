@@ -71,19 +71,22 @@ export default function Dashboard({
       <div style={{ padding: 12, borderTop: '1px solid var(--card-border)', display: 'flex', gap: 8, flexShrink: 0 }}>
         <div
           className="btn secondary"
-          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '10px', cursor: 'default' }}
+          style={{ flex: 1, padding: '9px 10px', cursor: 'default' }}
           title={diskSpace ? `${formatBytes(diskSpace.total - diskSpace.free)} used of ${formatBytes(diskSpace.total)}` : undefined}
         >
-          <DiskIcon size={16} />
-          <div style={{ flex: 1, height: 14, borderRadius: 7, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+            <DiskIcon size={13} />
+            <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Storage</span>
+            <span style={{ fontSize: 11, color: 'var(--text-dim)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
+              {diskSpace ? `${formatBytes(diskSpace.free)} free` : '…'}
+            </span>
+          </div>
+          <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
             <div
               className="disk-fill"
               style={{ width: diskSpace && diskSpace.total ? `${Math.min(100, ((diskSpace.total - diskSpace.free) / diskSpace.total) * 100)}%` : '0%' }}
             />
           </div>
-          <span style={{ fontSize: 11, color: 'var(--text-dim)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-            {diskSpace ? `${formatBytes(diskSpace.free)} free` : '…'}
-          </span>
         </div>
         <button className="btn secondary" style={{ padding: '8px 10px', flexShrink: 0 }} onClick={() => setSettingsOpen(true)}>
           <GearIcon size={16} />

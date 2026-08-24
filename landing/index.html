@@ -345,7 +345,7 @@
         <svg class="moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" fill="currentColor"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <a class="nav-cta" href="https://swiftsend-cfxh.onrender.com/downloads/mac">Download <span style="font-weight:400">→</span></a>
+      <a class="nav-cta" id="navCta" href="https://swiftsend-cfxh.onrender.com/downloads/mac">Download for Mac <span style="font-weight:400">→</span></a>
     </nav>
   </div>
 
@@ -562,6 +562,14 @@
             d.total.toLocaleString() + (d.total === 1 ? ' download so far' : ' downloads so far');
         })
         .catch(function () {});
+    })();
+
+    (function () {
+      var isWin = navigator.userAgent.indexOf('Windows') !== -1;
+      if (!isWin) return;
+      var navCta = document.getElementById('navCta');
+      navCta.href = 'https://swiftsend-cfxh.onrender.com/downloads/win';
+      navCta.childNodes[0].textContent = 'Download for Windows ';
     })();
   </script>
 </body>
