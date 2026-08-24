@@ -66,54 +66,68 @@ export default function SharedFolderEditor({
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               className="card"
-              style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}
+              style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}
             >
-              <img
-                src={folderIconFor(f.name, drives.some((d) => d.path === f.path))}
-                alt=""
-                style={{ width: 24, height: 24, flexShrink: 0 }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{f.name}</div>
-                <div
-                  style={{
-                    color: 'var(--text-dim)',
-                    fontSize: 12,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {f.path}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <img
+                  src={folderIconFor(f.name, drives.some((d) => d.path === f.path))}
+                  alt=""
+                  style={{ width: 24, height: 24, flexShrink: 0 }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 14,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {f.name}
+                  </div>
+                  <div
+                    style={{
+                      color: 'var(--text-dim)',
+                      fontSize: 12,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    {f.path}
+                  </div>
                 </div>
+                <button className="btn secondary" style={{ padding: '6px 10px', flexShrink: 0 }} onClick={() => remove(f.id)}>
+                  <CloseIcon size={12} />
+                </button>
               </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)' }}>
-                <input
-                  type="checkbox"
-                  checked={f.allowBrowse}
-                  onChange={(e) => update(f.id, { allowBrowse: e.target.checked })}
-                />
-                Browsable
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)' }}>
-                <input
-                  type="checkbox"
-                  checked={f.allowUpload}
-                  onChange={(e) => update(f.id, { allowUpload: e.target.checked })}
-                />
-                Accepts uploads
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)' }}>
-                <input
-                  type="checkbox"
-                  checked={f.allowDownload !== false}
-                  onChange={(e) => update(f.id, { allowDownload: e.target.checked })}
-                />
-                Downloadable
-              </label>
-              <button className="btn secondary" style={{ padding: '6px 10px' }} onClick={() => remove(f.id)}>
-                <CloseIcon size={12} />
-              </button>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginLeft: 34 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)' }}>
+                  <input
+                    type="checkbox"
+                    checked={f.allowBrowse}
+                    onChange={(e) => update(f.id, { allowBrowse: e.target.checked })}
+                  />
+                  Browsable
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)' }}>
+                  <input
+                    type="checkbox"
+                    checked={f.allowUpload}
+                    onChange={(e) => update(f.id, { allowUpload: e.target.checked })}
+                  />
+                  Accepts uploads
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)' }}>
+                  <input
+                    type="checkbox"
+                    checked={f.allowDownload !== false}
+                    onChange={(e) => update(f.id, { allowDownload: e.target.checked })}
+                  />
+                  Downloadable
+                </label>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>

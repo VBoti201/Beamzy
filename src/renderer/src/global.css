@@ -42,6 +42,14 @@ select {
   font-family: inherit;
 }
 
+button {
+  outline: none;
+}
+button:focus-visible {
+  outline: 2px solid rgba(255, 214, 10, 0.45);
+  outline-offset: 2px;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
