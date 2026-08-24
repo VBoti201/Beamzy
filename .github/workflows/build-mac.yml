@@ -47,6 +47,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p updates
+          node scripts/inject-release-notes.js dist/latest-mac.yml "$(git log -1 --pretty=%B)"
           rm -f updates/*-mac.zip updates/latest-mac.yml updates/*-mac.zip.blockmap
           cp dist/*-mac.zip updates/
           cp dist/latest-mac.yml updates/

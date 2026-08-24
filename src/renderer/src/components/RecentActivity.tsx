@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { HistoryEntry } from '../types'
+import { ChevronIcon } from '../icons'
 
 function formatWhen(ts: number): string {
   const diffMs = Date.now() - ts
@@ -15,6 +16,7 @@ function formatWhen(ts: number): string {
 
 export default function RecentActivity(): JSX.Element {
   const [entries, setEntries] = useState<HistoryEntry[]>([])
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     window.api.historyGet().then(setEntries)
@@ -30,37 +32,54 @@ export default function RecentActivity(): JSX.Element {
   return (
     <div style={{ padding: '4px 16px 12px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
       {recent.length > 0 && (
-        <div style={{ fontSize: 12, color: 'var(--text-dim)', fontWeight: 600, marginBottom: 6, marginTop: 4 }}>
-          Recent activity
-        </div>
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          style={{
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            marginBottom: 6,
+            marginTop: 4,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            width: '100%',
+            color: 'var(--text-dim)'
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600 }}>Recent activity</span>
+          <ChevronIcon size={10} style={{ transform: `rotate(${collapsed ? 90 : -90}deg)` }} />
+        </button>
       )}
       <AnimatePresence>
-        {recent.map((e) => (
-          <motion.div
-            key={e.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 12 }}
-          >
-            <span style={{ color: e.error ? 'var(--danger)' : 'var(--text-dim)', fontWeight: 700, width: 10, flexShrink: 0 }}>
-              {e.direction === 'sent' ? '↑' : '↓'}
-            </span>
-            <span
-              style={{
-                flex: 1,
-                minWidth: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                color: 'var(--text-dim)'
-              }}
-              title={e.fileName}
+        {!collapsed &&
+          recent.map((e) => (
+            <motion.div
+              key={e.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', fontSize: 12 }}
             >
-              {e.fileName}
-            </span>
-            <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{formatWhen(e.timestamp)}</span>
-          </motion.div>
-        ))}
+              <span style={{ color: e.error ? 'var(--danger)' : 'var(--text-dim)', fontWeight: 700, width: 10, flexShrink: 0 }}>
+                {e.direction === 'sent' ? '↑' : '↓'}
+              </span>
+              <span
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  color: 'var(--text-dim)'
+                }}
+                title={e.fileName}
+              >
+                {e.fileName}
+              </span>
+              <span style={{ color: 'var(--text-dim)', flexShrink: 0 }}>{formatWhen(e.timestamp)}</span>
+            </motion.div>
+          ))}
       </AnimatePresence>
     </div>
   )

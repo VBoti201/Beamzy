@@ -28,6 +28,7 @@ function formatWhen(ts: number): string {
 
 export default function History({ peerId }: { peerId: string }): JSX.Element {
   const [entries, setEntries] = useState<HistoryEntry[]>([])
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   useEffect(() => {
     window.api.historyGet().then(setEntries)
@@ -38,6 +39,19 @@ export default function History({ peerId }: { peerId: string }): JSX.Element {
 
   const remove = async (id: string): Promise<void> => {
     setEntries(await window.api.historyRemove({ id }))
+    setConfirmingId(null)
+  }
+
+  // Removing a "received" entry deletes the actual file, on both this
+  // device and the peer's — a real, hard-to-undo action — so the trash
+  // button requires a second click to confirm instead of firing instantly.
+  const onDeleteClick = (id: string): void => {
+    if (confirmingId === id) {
+      remove(id)
+    } else {
+      setConfirmingId(id)
+      setTimeout(() => setConfirmingId((cur) => (cur === id ? null : cur)), 3000)
+    }
   }
 
   if (filtered.length === 0) {
@@ -90,11 +104,16 @@ export default function History({ peerId }: { peerId: string }): JSX.Element {
             )}
             <button
               className="btn secondary"
-              style={{ padding: '4px 8px' }}
-              title="Remove from history"
-              onClick={() => remove(e.id)}
+              style={{
+                padding: confirmingId === e.id ? '4px 10px' : '4px 8px',
+                fontSize: 12,
+                color: confirmingId === e.id ? 'var(--danger)' : undefined,
+                borderColor: confirmingId === e.id ? 'var(--danger)' : undefined
+              }}
+              title={e.direction === 'received' ? 'Delete this file (on both devices)' : 'Remove from history'}
+              onClick={() => onDeleteClick(e.id)}
             >
-              <TrashIcon size={13} />
+              {confirmingId === e.id ? 'Confirm?' : <TrashIcon size={13} />}
             </button>
           </motion.div>
         ))}

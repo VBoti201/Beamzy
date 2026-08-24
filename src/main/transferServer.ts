@@ -12,6 +12,7 @@ export interface IncomingProgressEvent {
 }
 
 export interface IncomingDoneEvent {
+  transferId: string
   fileName: string
   filePath: string
   size: number
@@ -21,6 +22,7 @@ export interface IncomingDoneEvent {
 interface ServerEvents {
   onIncomingProgress?: (e: IncomingProgressEvent) => void
   onIncomingDone?: (e: IncomingDoneEvent) => void
+  onHistoryDeleteRequest?: (transferId: string) => void
 }
 
 function safeResolve(root: string, relPath: string): string {
@@ -54,6 +56,7 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
       if (url.pathname === '/api/targets' && req.method === 'GET') return handleTargets(res)
       if (url.pathname === '/api/download' && req.method === 'GET') return handleDownload(url, res)
       if (url.pathname === '/api/upload' && req.method === 'POST') return handleUpload(url, req, res, events)
+      if (url.pathname === '/api/history-delete' && req.method === 'POST') return handleHistoryDelete(url, res, events)
 
       res.writeHead(404)
       res.end('not found')
@@ -129,6 +132,13 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     fs.createReadStream(target).pipe(res)
   }
 
+  function handleHistoryDelete(url: URL, res: http.ServerResponse, events: ServerEvents): void {
+    const transferId = url.searchParams.get('transferId')
+    if (transferId) events.onHistoryDeleteRequest?.(transferId)
+    res.writeHead(200)
+    res.end('ok')
+  }
+
   function handleUpload(
     url: URL,
     req: http.IncomingMessage,
@@ -138,6 +148,7 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     const folderId = url.searchParams.get('folderId')
     const relPath = url.searchParams.get('path') || ''
     const fileName = decodeURIComponent(url.searchParams.get('fileName') || 'file')
+    const transferId = url.searchParams.get('transferId') || ''
     const totalBytes = Number(req.headers['content-length'] || 0)
     const cfg = getConfig()
     const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowUpload)
@@ -168,6 +179,7 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
       res.writeHead(200)
       res.end('ok')
       events.onIncomingDone?.({
+        transferId,
         fileName: path.basename(destFile),
         filePath: destFile,
         size: totalBytes,

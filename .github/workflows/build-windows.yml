@@ -40,6 +40,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p updates
+          node scripts/inject-release-notes.js dist/latest.yml "$(git log -1 --pretty=%B)"
           rm -f updates/*.exe updates/latest.yml updates/*.exe.blockmap
           # Only the NSIS installer + its metadata belong in the update feed
           # (the portable build isn't something electron-updater manages).

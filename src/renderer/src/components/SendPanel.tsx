@@ -133,8 +133,7 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
         <motion.img
           src={sendIcon}
           alt=""
-          animate={{ y: dragOver ? -6 : 0, scale: dragOver ? 1.08 : 1, rotate: sending ? 360 : 0 }}
-          transition={sending ? { rotate: { duration: 1, repeat: Infinity, ease: 'linear' } } : undefined}
+          animate={{ y: dragOver ? -6 : 0, scale: sending ? 1.15 : dragOver ? 1.08 : 1 }}
           style={{ width: 48, height: 48 }}
         />
         <div style={{ fontWeight: 600 }}>Drag files here, or click to browse</div>

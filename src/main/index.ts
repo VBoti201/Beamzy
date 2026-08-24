@@ -7,12 +7,12 @@ import { randomUUID } from 'crypto'
 import { getConfig, updateConfig, SharedFolder, RelayConfig } from './config'
 import { Discovery, PeerInfo } from './discovery'
 import { startTransferServer } from './transferServer'
-import { pushFile, pullFile, fetchJson } from './transferClient'
+import { pushFile, pullFile, fetchJson, notifyHistoryDelete } from './transferClient'
 import { getDrives } from './drives'
 import { RelayClient } from './relayClient'
 import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './updater'
 import { generateUniquePairingCode } from './constants'
-import { getHistory, addHistoryEntry, removeHistoryEntry } from './history'
+import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
 
 function getFriendlySystemName(): string {
   if (process.platform === 'darwin') {
@@ -45,12 +45,31 @@ function recordHistory(entry: Parameters<typeof addHistoryEntry>[0]): void {
   sendToWindow('history:update', entries)
 }
 
+// Deleting a "received" copy actually removes the file (it's a landed
+// duplicate); deleting a "sent" record never touches the original source
+// file, only the log entry. Applied independently on whichever device
+// this runs on, so the same transferId resolves correctly on both sides
+// regardless of which one asked to delete first.
+function applyHistoryDelete(transferId: string): void {
+  const entry = findHistoryEntryByTransferId(transferId)
+  if (entry && entry.direction === 'received') {
+    try {
+      fs.unlinkSync(entry.filePath)
+    } catch {
+      // Already gone, or inaccessible — nothing more we can do about it.
+    }
+  }
+  const entries = removeHistoryEntryByTransferId(transferId)
+  sendToWindow('history:update', entries)
+}
+
 const relayClient = new RelayClient({
   onPeers: (peers) => sendToWindow('relay:peers-update', peers),
   onStatus: (status) => sendToWindow('relay:status-update', status),
   onProgress: (p) => sendToWindow('transfer:progress', p),
-  onHistory: (e) => recordHistory(e),
-  onPairingRequest: (req) => sendToWindow('relay:pairing-request', req)
+  onHistory: (e) => recordHistory({ ...e, transport: 'relay' }),
+  onPairingRequest: (req) => sendToWindow('relay:pairing-request', req),
+  onHistoryDeleteRequest: (transferId) => applyHistoryDelete(transferId)
 })
 
 function syncRelayClient(cfg: ReturnType<typeof getConfig>): void {
@@ -102,13 +121,17 @@ async function bootstrap(): Promise<void> {
         fileName: e.fileName,
         bytesTransferred: e.bytesTransferred,
         totalBytes: e.totalBytes,
-        direction: 'push',
+        // This is always data landing on this device (someone pushed to
+        // us), regardless of the HTTP verb involved — show it as incoming.
+        direction: 'pull',
         done: e.totalBytes > 0 && e.bytesTransferred >= e.totalBytes
       }),
     onIncomingDone: (e) => {
       const remote = e.remoteAddress.replace(/^::ffff:/, '')
       const peer = currentPeers.find((p) => p.addresses?.includes(remote))
       recordHistory({
+        transferId: e.transferId,
+        transport: 'lan',
         fileName: e.fileName,
         filePath: e.filePath,
         direction: 'received',
@@ -116,7 +139,8 @@ async function bootstrap(): Promise<void> {
         peerName: peer?.name || remote,
         size: e.size
       })
-    }
+    },
+    onHistoryDeleteRequest: (transferId) => applyHistoryDelete(transferId)
   })
   closeServer = close
 
@@ -280,6 +304,8 @@ ipcMain.handle(
         )
         const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
         recordHistory({
+          transferId,
+          transport: 'lan',
           fileName: path.basename(filePath),
           filePath,
           direction: 'sent',
@@ -314,6 +340,8 @@ ipcMain.handle(
     )
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
     recordHistory({
+      transferId,
+      transport: 'lan',
       fileName: result.fileName,
       filePath: result.destFile,
       direction: 'received',
@@ -328,9 +356,16 @@ ipcMain.handle(
 ipcMain.handle('history:get', () => getHistory())
 
 ipcMain.handle('history:remove', (_e, args: { id: string }) => {
-  const entries = removeHistoryEntry(args.id)
-  sendToWindow('history:update', entries)
-  return entries
+  const entry = getHistory().find((e) => e.id === args.id)
+  if (!entry) return getHistory()
+  applyHistoryDelete(entry.transferId)
+  if (entry.transport === 'relay') {
+    relayClient.notifyHistoryDelete(entry.peerId, entry.transferId)
+  } else {
+    const peer = currentPeers.find((p) => p.id === entry.peerId)
+    if (peer) notifyHistoryDelete(peer.host, peer.port, entry.transferId)
+  }
+  return getHistory()
 })
 
 ipcMain.handle('history:open', (_e, args: { filePath: string }) => shell.openPath(args.filePath))

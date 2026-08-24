@@ -6,6 +6,19 @@ export interface UpdateStatus {
   version?: string
   percent?: number
   message?: string
+  releaseNotes?: string
+  releaseDate?: string
+}
+
+function notesOf(info: { releaseNotes?: string | { note?: string | null }[] | null }): string | undefined {
+  if (typeof info.releaseNotes === 'string') return info.releaseNotes
+  if (Array.isArray(info.releaseNotes)) {
+    return info.releaseNotes
+      .map((n) => n.note)
+      .filter(Boolean)
+      .join('\n')
+  }
+  return undefined
 }
 
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000 // 4 hours
@@ -26,12 +39,16 @@ function registerListeners(): void {
   autoUpdater.autoInstallOnAppQuit = false
 
   autoUpdater.on('checking-for-update', () => emit({ state: 'checking' }))
-  autoUpdater.on('update-available', (info) => emit({ state: 'available', version: info.version }))
+  autoUpdater.on('update-available', (info) =>
+    emit({ state: 'available', version: info.version, releaseNotes: notesOf(info), releaseDate: info.releaseDate })
+  )
   autoUpdater.on('update-not-available', () => emit({ state: 'not-available' }))
   autoUpdater.on('download-progress', (progress) =>
     emit({ state: 'downloading', percent: Math.round(progress.percent) })
   )
-  autoUpdater.on('update-downloaded', (info) => emit({ state: 'downloaded', version: info.version }))
+  autoUpdater.on('update-downloaded', (info) =>
+    emit({ state: 'downloaded', version: info.version, releaseNotes: notesOf(info), releaseDate: info.releaseDate })
+  )
   autoUpdater.on('error', (err) => emit({ state: 'error', message: err.message }))
 }
 

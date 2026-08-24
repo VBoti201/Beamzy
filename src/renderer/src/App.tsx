@@ -4,6 +4,7 @@ import Splash from './components/Splash'
 import Onboarding from './components/Onboarding'
 import Dashboard from './components/Dashboard'
 import UpdateBanner from './components/UpdateBanner'
+import UpdateReadyModal from './components/UpdateReadyModal'
 import PairingRequestModal from './components/PairingRequestModal'
 import type {
   AppConfig,
@@ -27,6 +28,7 @@ export default function App(): JSX.Element {
   const [transfers, setTransfers] = useState<TransferProgress[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus | null>(null)
   const [pairingQueue, setPairingQueue] = useState<PairingRequest[]>([])
+  const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -152,6 +154,16 @@ export default function App(): JSX.Element {
             onReject={() => respondToPairing(false)}
           />
         )}
+        {stage === 'app' &&
+          updateStatus?.state === 'downloaded' &&
+          updateStatus.version !== dismissedUpdateVersion && (
+            <UpdateReadyModal
+              key="update-ready"
+              status={updateStatus}
+              onInstall={() => window.api.installUpdate()}
+              onLater={() => setDismissedUpdateVersion(updateStatus.version || null)}
+            />
+          )}
       </AnimatePresence>
     </div>
   )

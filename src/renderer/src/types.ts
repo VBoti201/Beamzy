@@ -81,6 +81,8 @@ export interface PairingRequest {
 
 export interface HistoryEntry {
   id: string
+  transferId: string
+  transport: 'lan' | 'relay'
   fileName: string
   filePath: string
   direction: 'sent' | 'received'
@@ -96,4 +98,6 @@ export interface UpdateStatus {
   version?: string
   percent?: number
   message?: string
+  releaseNotes?: string
+  releaseDate?: string
 }

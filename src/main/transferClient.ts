@@ -33,7 +33,7 @@ export function pushFile(
   return new Promise((resolve, reject) => {
     const stat = fs.statSync(localFilePath)
     const baseName = path.basename(localFilePath)
-    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(destRelPath)}&fileName=${encodeURIComponent(baseName)}`
+    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(destRelPath)}&fileName=${encodeURIComponent(baseName)}&transferId=${encodeURIComponent(transferId)}`
     const req = http.request(
       {
         host,
@@ -108,6 +108,19 @@ export function pullFile(
       })
       .on('error', reject)
   })
+}
+
+export function notifyHistoryDelete(host: string, port: number, transferId: string): void {
+  // Best-effort — the peer may be offline right now, in which case there's
+  // nothing more to do than let this fail silently.
+  const req = http.request({
+    host,
+    port,
+    path: `/api/history-delete?transferId=${encodeURIComponent(transferId)}`,
+    method: 'POST'
+  })
+  req.on('error', () => {})
+  req.end()
 }
 
 export function fetchJson<T>(host: string, port: number, pathAndQuery: string): Promise<T> {

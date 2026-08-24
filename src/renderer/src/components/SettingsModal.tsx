@@ -40,6 +40,8 @@ export default function SettingsModal({
         position: 'fixed',
         inset: 0,
         background: 'rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

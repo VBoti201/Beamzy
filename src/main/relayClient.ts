@@ -72,13 +72,13 @@ interface IncomingWrite {
   fileName: string
   totalBytes: number
   bytesTransferred: number
-  direction: 'push' | 'pull'
   fromPeerId: string
 }
 
 export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 
 export interface RelayHistoryEvent {
+  transferId: string
   fileName: string
   filePath: string
   direction: 'sent' | 'received'
@@ -100,6 +100,7 @@ interface RelayClientCallbacks {
   onStatus: (status: RelayStatus) => void
   onHistory: (e: RelayHistoryEvent) => void
   onPairingRequest: (req: PairingRequest) => void
+  onHistoryDeleteRequest: (transferId: string) => void
 }
 
 export class RelayClient {
@@ -287,6 +288,9 @@ export class RelayClient {
       case 'upload-start':
         this.handleUploadStart(from, payload)
         return
+      case 'history-delete':
+        this.callbacks.onHistoryDeleteRequest(payload.transferId as string)
+        return
       case 'upload-chunk':
         this.handleUploadChunk(payload)
         return
@@ -392,7 +396,7 @@ export class RelayClient {
             error: streamErr.message
           })
         })
-        this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'pull', fromPeerId: from })
+        this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, fromPeerId: from })
       } catch (err) {
         pull.reject(err instanceof Error ? err : new Error('Failed to start download'))
         this.pendingPulls.delete(transferId)
@@ -420,7 +424,7 @@ export class RelayClient {
         this.incomingWrites.delete(transferId)
         this.sendRelay(from, { kind: 'upload-error', transferId, message: streamErr.message })
       })
-      this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, direction: 'push', fromPeerId: from })
+      this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, fromPeerId: from })
     } catch (err) {
       this.sendRelay(from, { kind: 'upload-error', transferId, message: err instanceof Error ? err.message : 'Failed to receive file' })
     }
@@ -439,7 +443,10 @@ export class RelayClient {
       fileName: write.fileName,
       bytesTransferred: write.bytesTransferred,
       totalBytes: write.totalBytes,
-      direction: write.direction
+      // incomingWrites always means data landing on this device, whether
+      // we're on the receiving end of someone else's push or of our own
+      // pull — show it as incoming either way.
+      direction: 'pull'
     })
   }
 
@@ -453,7 +460,7 @@ export class RelayClient {
         fileName: write.fileName,
         bytesTransferred: write.totalBytes,
         totalBytes: write.totalBytes,
-        direction: write.direction,
+        direction: 'pull',
         done: true
       })
       const pull = this.pendingPulls.get(transferId)
@@ -463,6 +470,7 @@ export class RelayClient {
       }
       const fromPeer = this.knownPeers.get(write.fromPeerId)
       this.callbacks.onHistory({
+        transferId,
         fileName: write.fileName,
         filePath: write.destFile,
         direction: 'received',
@@ -494,7 +502,7 @@ export class RelayClient {
       fileName: write?.fileName || pull?.fileName || outgoingPush?.fileName || 'file',
       bytesTransferred: write?.bytesTransferred || 0,
       totalBytes: write?.totalBytes || outgoingPush?.totalBytes || 0,
-      direction: write?.direction || 'push',
+      direction: write || pull ? 'pull' : 'push',
       error: message
     })
   }
@@ -519,7 +527,7 @@ export class RelayClient {
       return
     }
     const fileName = path.basename(filePath)
-    this.streamFileTo(from, transferId, filePath, fileName, size, 'pull', '', '')
+    this.streamFileTo(from, transferId, filePath, fileName, size, '', '')
   }
 
   private async streamFileTo(
@@ -528,7 +536,6 @@ export class RelayClient {
     filePath: string,
     fileName: string,
     totalBytes: number,
-    direction: 'push' | 'pull',
     destFolderId: string,
     destRelPath: string
   ): Promise<void> {
@@ -540,13 +547,17 @@ export class RelayClient {
         const buf = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
         bytesTransferred += buf.length
         this.sendRelay(to, { kind: 'upload-chunk', transferId, data: buf.toString('base64') })
-        this.callbacks.onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction })
+        // streamFileTo always means this device is sending bytes out —
+        // whether because it initiated a push or is serving someone else's
+        // pull request — so this is always outgoing from here.
+        this.callbacks.onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction: 'push' })
       })
       stream.on('end', () => {
         this.sendRelay(to, { kind: 'upload-end', transferId })
-        this.callbacks.onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction, done: true })
+        this.callbacks.onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction: 'push', done: true })
         const toPeer = this.knownPeers.get(to)
         this.callbacks.onHistory({
+          transferId,
           fileName,
           filePath,
           direction: 'sent',
@@ -586,7 +597,7 @@ export class RelayClient {
       // promise, which only resolves/rejects based on the local read side.
       this.outgoingPushes.set(transferId, { fileName, totalBytes: stat.size })
       try {
-        await this.streamFileTo(peerId, transferId, filePath, fileName, stat.size, 'push', folderId, destRelPath)
+        await this.streamFileTo(peerId, transferId, filePath, fileName, stat.size, folderId, destRelPath)
         // Local streaming finished, but the receiver acks failure (not
         // success) asynchronously — keep the lookup around briefly in case
         // a delayed upload-error is still on its way, then let it go.
@@ -634,5 +645,9 @@ export class RelayClient {
 
   kickDevice(deviceId: string): void {
     this.sendControl({ type: 'kick', deviceId })
+  }
+
+  notifyHistoryDelete(peerId: string, transferId: string): void {
+    this.sendRelay(peerId, { kind: 'history-delete', transferId })
   }
 }
