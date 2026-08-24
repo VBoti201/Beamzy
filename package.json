@@ -1,6 +1,6 @@
 {
   "name": "swiftsend",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Ultra-fast LAN file transfer between your Mac and Windows devices",
   "main": "./out/main/index.js",
   "author": "verdesboti@icloud.com",

@@ -13,7 +13,7 @@ function formatWhen(ts: number): string {
   return `${days}d`
 }
 
-export default function RecentActivity(): JSX.Element | null {
+export default function RecentActivity(): JSX.Element {
   const [entries, setEntries] = useState<HistoryEntry[]>([])
 
   useEffect(() => {
@@ -21,14 +21,19 @@ export default function RecentActivity(): JSX.Element | null {
     return window.api.onHistoryUpdate(setEntries)
   }, [])
 
-  if (entries.length === 0) return null
   const recent = entries.slice(0, 8)
 
+  // Always renders (even empty) and keeps flex:1 so this reserves the
+  // remaining sidebar space — otherwise the bottom bar (Profile/Settings)
+  // would ride up right under the peer list whenever there's no history
+  // yet, instead of staying pinned to the bottom of the sidebar.
   return (
     <div style={{ padding: '4px 16px 12px', flex: 1, overflowY: 'auto', minHeight: 0 }}>
-      <div style={{ fontSize: 12, color: 'var(--text-dim)', fontWeight: 600, marginBottom: 6, marginTop: 4 }}>
-        Recent activity
-      </div>
+      {recent.length > 0 && (
+        <div style={{ fontSize: 12, color: 'var(--text-dim)', fontWeight: 600, marginBottom: 6, marginTop: 4 }}>
+          Recent activity
+        </div>
+      )}
       <AnimatePresence>
         {recent.map((e) => (
           <motion.div
