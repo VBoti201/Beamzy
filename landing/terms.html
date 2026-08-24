@@ -32,7 +32,9 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+  @keyframes pageFadeIn { from { opacity: 0; } to { opacity: 1; } }
   body {
+    animation: pageFadeIn 0.35s ease;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -68,6 +70,8 @@
   html[data-theme='light'] .theme-toggle .sun { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(1); }
   html[data-theme='light'] .theme-toggle .moon { opacity: 0; transform: translate(-50%, -50%) rotate(100deg) scale(0.4); }
   .back { font-size: 13px; color: var(--text-dim); text-decoration: none; }
+  .nav-link { font-size: 13px; color: var(--text-dim); text-decoration: none; padding: 8px 4px; }
+  .nav-link:hover { color: var(--text); }
 
   h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.6px; margin: 0 0 6px; }
   .updated { color: var(--text-dim); font-size: 13px; margin-bottom: 40px; }
@@ -85,6 +89,8 @@
         <svg width="26" height="26" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="230" fill="#0d0d10"/><g fill="#FFD60A"><g transform="translate(575.5,575.5) rotate(-45)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g><g transform="translate(448.5,448.5) rotate(135)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g></g></svg>
         <span class="word">Beamzy</span>
       </a>
+      <a class="nav-link" href="privacy.html">Privacy</a>
+      <a class="nav-link" href="mailto:verdesboti@icloud.com">Contact</a>
       <a class="back" href="index.html">← Back</a>
       <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme" type="button">
         <svg class="moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" fill="currentColor"/></svg>
@@ -135,6 +141,19 @@
         var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
         root.setAttribute('data-theme', next);
         try { localStorage.setItem('beamzy-theme', next); } catch (e) {}
+      });
+    })();
+
+    (function () {
+      document.querySelectorAll('a[href$=".html"]').forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          if (e.metaKey || e.ctrlKey || e.shiftKey || a.target === '_blank') return;
+          e.preventDefault();
+          var href = a.getAttribute('href');
+          document.body.style.transition = 'opacity 0.22s ease';
+          document.body.style.opacity = '0';
+          setTimeout(function () { window.location.href = href; }, 200);
+        });
       });
     })();
   </script>
