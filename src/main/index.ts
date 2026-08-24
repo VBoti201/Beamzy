@@ -53,7 +53,7 @@ function getFriendlySystemName(): string {
   return os.hostname().replace(/\.local$/i, '')
 }
 
-app.setName('SwiftSend')
+app.setName('Beamzy')
 
 let mainWindow: BrowserWindow | null = null
 let discovery: Discovery | null = null
@@ -66,7 +66,7 @@ const rejectedLanDevices = new Set<string>()
 // LAN peers don't need a pairing code (mDNS just finds them), but a never-
 // approved deviceId still shouldn't be usable until the user explicitly
 // accepts it — otherwise anyone else on the same WiFi/router running
-// SwiftSend would show up with zero confirmation.
+// Beamzy would show up with zero confirmation.
 function refreshLanPeers(): void {
   for (const p of lastRawLanPeers) {
     if (!isLanDeviceApproved(p.id) && !pendingLanApprovals.has(p.id) && !rejectedLanDevices.has(p.id)) {
@@ -130,7 +130,7 @@ function syncRelayClient(cfg: ReturnType<typeof getConfig>): void {
 function createWindow(): void {
   const isWin = process.platform === 'win32'
   mainWindow = new BrowserWindow({
-    title: 'SwiftSend',
+    title: 'Beamzy',
     width: isWin ? 1200 : 1080,
     height: isWin ? 780 : 720,
     minWidth: 860,

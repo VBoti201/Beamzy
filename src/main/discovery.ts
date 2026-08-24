@@ -11,6 +11,9 @@ export interface PeerInfo {
 
 type PeersChangedHandler = (peers: PeerInfo[]) => void
 
+// Intentionally left as the original protocol identifier (not tied to the
+// app's display name) — changing it would break LAN discovery between
+// devices that haven't updated at the same moment.
 const SERVICE_TYPE = 'swiftsend'
 
 export class Discovery {
@@ -28,7 +31,7 @@ export class Discovery {
 
   start(deviceId: string, deviceName: string, port: number): void {
     this.published = this.bonjour.publish({
-      name: `SwiftSend-${deviceId}`,
+      name: `Beamzy-${deviceId}`,
       type: SERVICE_TYPE,
       port,
       txt: { id: deviceId, name: deviceName, platform: process.platform }

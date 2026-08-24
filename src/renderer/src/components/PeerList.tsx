@@ -32,7 +32,7 @@ export default function PeerList({
           >
             Searching for devices…
             <br />
-            Open SwiftSend on your other device too.
+            Open Beamzy on your other device too.
           </motion.div>
         )}
         {peers.map((p) => (

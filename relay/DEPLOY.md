@@ -1,7 +1,7 @@
-# SwiftSend relay — telepítés VPS-re
+# Beamzy relay — telepítés VPS-re
 
 Ez a mappa egy önálló, pár tíz soros Node.js WebSocket szerver. Egyetlen dolga:
-összeköti egymással a SwiftSend-es eszközpárokat, ha épp nincsenek ugyanazon
+összeköti egymással a Beamzy-es eszközpárokat, ha épp nincsenek ugyanazon
 a helyi hálózaton. Nem tárol fájlt, nem ismer felhasználói fiókot — csak
 addig tartja nyitva a kapcsolatot, amíg egy eszközpár be nem fejezi az
 átvitelt, utána semmi nyom nem marad utána a szerveren.
@@ -62,7 +62,7 @@ menet közben, a tényleges forgalom alapján felskálázni.
 3. **Alap VPS-higiénia**: SSH csak kulccsal (jelszavas bejelentkezés
    kikapcsolva), root bejelentkezés tiltva, rendszeres `apt upgrade`, esetleg
    `fail2ban` az SSH brute force ellen. Ez minden internetre kitett gépre
-   igaz, nem SwiftSend-specifikus, de a relay sem ér semmit, ha maga a VPS
+   igaz, nem Beamzy-specifikus, de a relay sem ér semmit, ha maga a VPS
    sérül.
 4. **Ha valaha úgy érzed, kiszivároghatott a párosító kódod**, az app
    Beállításaiban egy kattintással ("Regenerate") újat generálhatsz — a
@@ -111,8 +111,8 @@ alapján — a systemd unit is alapból csak a helyi 8787-es porton figyel.
 ### Ellenőrzés
 
 ```bash
-curl -s https://relay.sajatdomained.com/   # -> "SwiftSend relay OK"
+curl -s https://relay.sajatdomained.com/   # -> "Beamzy relay OK"
 ```
 
-Utána a SwiftSend appban (mindkét géped Beállítások > Remote access) add
+Utána a Beamzy appban (mindkét géped Beállítások > Remote access) add
 meg a `wss://relay.sajatdomained.com` címet, és a párosító kódot.

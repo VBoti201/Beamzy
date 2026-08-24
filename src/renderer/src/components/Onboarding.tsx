@@ -66,7 +66,7 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -0.5 }}>Welcome to SwiftSend</h1>
+        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -0.5 }}>Welcome to Beamzy</h1>
         <p style={{ color: 'var(--text-dim)', fontSize: 14, lineHeight: 1.5 }}>
           Ultra-fast file transfer between the Mac and Windows machines on your local network.
         </p>
@@ -98,7 +98,7 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
           Pairing code — links your devices for remote access
         </label>
         <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.5, margin: '4px 0 0' }}>
-          Setting up your <strong>first</strong> SwiftSend device? Just leave this code as-is. Setting up a{' '}
+          Setting up your <strong>first</strong> Beamzy device? Just leave this code as-is. Setting up a{' '}
           <strong>second</strong> device to pair with one you already set up? Replace it with the code shown on
           that device (Settings). Devices with the same code can send files to each other even off your local
           network.

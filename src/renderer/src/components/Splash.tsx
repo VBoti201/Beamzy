@@ -57,7 +57,7 @@ export default function Splash(): JSX.Element {
           backgroundClip: 'text'
         }}
       >
-        SwiftSend
+        Beamzy
       </motion.div>
 
       <motion.div

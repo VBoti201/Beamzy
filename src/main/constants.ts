@@ -4,7 +4,7 @@ import https from 'https'
 
 // Baked-in default for the relay server URL — set this once to your own
 // deployed relay (see relay/DEPLOY.md), then rebuild the app. Every device
-// you install SwiftSend on will already have it pre-filled in Settings, so
+// you install Beamzy on will already have it pre-filled in Settings, so
 // pairing is just: flip the toggle, share the pairing code, done.
 export const DEFAULT_RELAY_URL = 'wss://swiftsend-cfxh.onrender.com'
 

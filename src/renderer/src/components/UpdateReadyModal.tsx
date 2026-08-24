@@ -52,7 +52,7 @@ export default function UpdateReadyModal({
         }}
       >
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: 17 }}>SwiftSend {status.version ? `v${status.version}` : ''} is ready</div>
+          <div style={{ fontWeight: 700, fontSize: 17 }}>Beamzy {status.version ? `v${status.version}` : ''} is ready</div>
           {releaseDate && <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 4 }}>Released {releaseDate}</div>}
         </div>
         {status.releaseNotes && (

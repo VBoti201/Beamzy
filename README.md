@@ -1,10 +1,10 @@
-# SwiftSend
+# Beamzy
 
 Ultra gyors fájlküldés Mac és Windows gépek között, ugyanazon a helyi hálózaton (wifi/router). Nincs felhő, nincs feltöltési korlát — a két gép közvetlenül, egymás között küldi a fájlokat a helyi hálózaton.
 
 ## Hogyan működik
 
-- **Felderítés**: az app mDNS-szel (Bonjour) automatikusan megtalálja a hálózaton futó másik SwiftSend példányokat, párosítási kód nélkül.
+- **Felderítés**: az app mDNS-szel (Bonjour) automatikusan megtalálja a hálózaton futó másik Beamzy példányokat, párosítási kód nélkül.
 - **Küldés (push)**: kiválasztod a fájlokat / mappát, és hogy a másik gépen melyik megosztott mappába kerüljön — utána azonnal indul az átvitel.
 - **Lehúzás (pull)**: a másik gép megosztott mappáiban böngészhetsz, és bármelyik fájlt magadhoz húzhatod, anélkül hogy a másik gépen bárkinek fel kellene töltenie.
 - **Jogosultságok**: csak azok a mappák láthatók / írhatók kívülről, amelyeket te kifejezetten megosztasz az appban (Beállítások, vagy az első indításkor).
@@ -24,7 +24,7 @@ Amikor mindkét géped ugyanazon a wifin/routeren van, az app a fenti közvetlen
    ```
    Bármilyen Node.js-t futtató helyen elindítható: egy olcsó VPS-en, vagy ingyenes szolgáltatásokon (Render, Railway, Fly.io stb.) — a lényeg, hogy legyen egy `wss://...` címe. Részletes telepítési útmutató (Docker/systemd, gépigény, TLS, tűzfal, biztonsági megfontolások): [`relay/DEPLOY.md`](relay/DEPLOY.md).
 
-2. **Ezt az egy URL-t beégeted az appba, mielőtt publikálod**: nyisd meg a `src/main/constants.ts`-t, írd át a `DEFAULT_RELAY_URL`-t a saját relayedre, majd buildeld újra (`npm run build:mac` / `npm run build:win`). Ettől kezdve **minden** telepített SwiftSend-példány — bárkié, aki letölti a publikált appot — ugyanazt a központi relay-t használja alapból, a távoli hozzáférés pedig már be is van kapcsolva alapértelmezetten.
+2. **Ezt az egy URL-t beégeted az appba, mielőtt publikálod**: nyisd meg a `src/main/constants.ts`-t, írd át a `DEFAULT_RELAY_URL`-t a saját relayedre, majd buildeld újra (`npm run build:mac` / `npm run build:win`). Ettől kezdve **minden** telepített Beamzy-példány — bárkié, aki letölti a publikált appot — ugyanazt a központi relay-t használja alapból, a távoli hozzáférés pedig már be is van kapcsolva alapértelmezetten.
 
 3. **A végfelhasználó (akár te magad a két géped között, akár bárki más, aki majd letölti az appot) ettől kezdve tényleg csak 2 gépet lát**: telepíti az appot mindkét eszközére, az onboarding végén megjelenik egy **párosító kód** (pl. `AB3-K9Q`) — az első gépen ezt egyszerűen otthagyja, a másodikon pedig felülírja az első gép kódjával. Ha a kód egyezik, a két eszköz látja egymást "🌐 Remote" jelöléssel, és attól kezdve ugyanúgy küldhetnek/húzhatnak fájlokat, mint helyi hálózaton — csak az átvitel a relay-n át megy (ezért lassabb, mint LAN-on, a sebességet az internet-feltöltési/letöltési sebességük korlátozza). Sem VPS-t, sem beállítást, sem Settings-ben turkálást nem igényel tőlük.
 
@@ -49,12 +49,12 @@ npm run build:mac   # .dmg / .zip macOS-hez (macOS gépen futtatva)
 npm run build:win   # .exe (NSIS + portable) Windows-hoz
 ```
 
-> **Megjegyzés a Windows build-hez**: `npm run build:win` (NSIS installer + portable exe) Mac gépről futtatva `wine`-t igényel. Wine nélkül is lehet Windows-buildet készíteni Macen — ez nem ad szép telepítőt, de a `SwiftSend.exe` simán fut vele:
+> **Megjegyzés a Windows build-hez**: `npm run build:win` (NSIS installer + portable exe) Mac gépről futtatva `wine`-t igényel. Wine nélkül is lehet Windows-buildet készíteni Macen — ez nem ad szép telepítőt, de a `Beamzy.exe` simán fut vele:
 > ```bash
 > npx electron-builder --win dir --x64
-> cd dist && zip -r SwiftSend-win-x64.zip win-unpacked
+> cd dist && zip -r Beamzy-win-x64.zip win-unpacked
 > ```
-> A kapott zip-et kicsomagolva Windows gépen a `win-unpacked\SwiftSend.exe`-re duplán kattintva indul az app. Ha szép telepítőt szeretnél (Start Menu bejegyzés stb.), vagy futtasd a `build:win` parancsot közvetlenül egy Windows gépen, vagy telepítsd a Wine-t (`brew install --cask wine-stable`) — Apple Siliconon ez néha akadozik electron-builderrel.
+> A kapott zip-et kicsomagolva Windows gépen a `win-unpacked\Beamzy.exe`-re duplán kattintva indul az app. Ha szép telepítőt szeretnél (Start Menu bejegyzés stb.), vagy futtasd a `build:win` parancsot közvetlenül egy Windows gépen, vagy telepítsd a Wine-t (`brew install --cask wine-stable`) — Apple Siliconon ez néha akadozik electron-builderrel.
 
 ## Tűzfal / hálózat
 

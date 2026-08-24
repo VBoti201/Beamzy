@@ -1,11 +1,11 @@
-// Minimal relay for SwiftSend remote transfers.
+// Minimal relay for Beamzy remote transfers.
 //
 // A "pairId" is a short random code shared between exactly your own devices
 // (you copy it from one device's Settings into the other's). The relay only
 // ever forwards messages between sockets that presented the same pairId —
 // it never inspects file contents, it just pipes JSON frames between two of
 // your own devices. Deploy this anywhere reachable over the internet (a
-// small VPS, Render, Railway, Fly.io, ...) and point both SwiftSend apps at
+// small VPS, Render, Railway, Fly.io, ...) and point both Beamzy apps at
 // its wss:// URL.
 //
 // Because the pairing code is short (easy to type by hand) rather than a
@@ -188,7 +188,7 @@ const httpServer = http.createServer((req, res) => {
     return
   }
   res.writeHead(200, { 'Content-Type': 'text/plain' })
-  res.end('SwiftSend relay OK\n')
+  res.end('Beamzy relay OK\n')
 })
 
 const wss = new WebSocketServer({ server: httpServer, maxPayload: MAX_PAYLOAD, path: '/ws' })
@@ -262,5 +262,5 @@ wss.on('connection', (ws, req) => {
 })
 
 httpServer.listen(PORT, () => {
-  console.log(`SwiftSend relay listening on :${PORT}`)
+  console.log(`Beamzy relay listening on :${PORT}`)
 })

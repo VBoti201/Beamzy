@@ -1,6 +1,6 @@
 {
   "name": "swiftsend",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "description": "Ultra-fast LAN file transfer between your Mac and Windows devices",
   "main": "./out/main/index.js",
   "author": "verdesboti@icloud.com",
@@ -42,7 +42,7 @@
   },
   "build": {
     "appId": "com.swiftsend.app",
-    "productName": "SwiftSend",
+    "productName": "Beamzy",
     "files": [
       "out/**/*"
     ],

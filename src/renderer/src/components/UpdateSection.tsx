@@ -50,7 +50,7 @@ export default function UpdateSection({ updateStatus }: { updateStatus: UpdateSt
         <div>
           <div style={{ fontWeight: 600, fontSize: 14 }}>Software update</div>
           <div style={{ color: 'var(--text-dim)', fontSize: 12, marginTop: 2 }}>
-            SwiftSend {version ? `v${version}` : ''}
+            Beamzy {version ? `v${version}` : ''}
           </div>
         </div>
         {updateStatus?.state === 'downloaded' ? (
