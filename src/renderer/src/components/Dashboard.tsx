@@ -78,7 +78,7 @@ export default function Dashboard({
         }}
         style={{
           position: 'absolute',
-          top: 34,
+          top: 40,
           left: (sidebarCollapsed ? RAIL_WIDTH : SIDEBAR_WIDTH) - TOGGLE_SIZE / 2,
           width: TOGGLE_SIZE,
           height: TOGGLE_SIZE,
