@@ -36,7 +36,11 @@ function registerListeners(): void {
   listenersRegistered = true
 
   autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = false
+  // If the app's UI is ever broken (e.g. a bad renderer/preload build), the
+  // user can't click "Restart & Install" — but simply quitting the app
+  // should still pick up whatever update already finished downloading, so
+  // a bad release doesn't get stuck forever.
+  autoUpdater.autoInstallOnAppQuit = true
 
   autoUpdater.on('checking-for-update', () => emit({ state: 'checking' }))
   autoUpdater.on('update-available', (info) =>
