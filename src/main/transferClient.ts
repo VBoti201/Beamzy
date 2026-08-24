@@ -61,12 +61,13 @@ export function pushFile(
   destRelPath: string,
   localFilePath: string,
   transferId: string,
+  requesterId: string,
   onProgress: ProgressCb
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const stat = fs.statSync(localFilePath)
     const baseName = path.basename(localFilePath)
-    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(destRelPath)}&fileName=${encodeURIComponent(baseName)}&transferId=${encodeURIComponent(transferId)}`
+    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(destRelPath)}&fileName=${encodeURIComponent(baseName)}&transferId=${encodeURIComponent(transferId)}&requesterId=${encodeURIComponent(requesterId)}`
     const req = http.request(
       {
         host,
@@ -108,10 +109,11 @@ export function pullFile(
   remoteRelPath: string,
   destDirPath: string,
   transferId: string,
+  requesterId: string,
   onProgress: ProgressCb
 ): Promise<{ fileName: string; destFile: string; size: number }> {
   return new Promise((resolve, reject) => {
-    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(remoteRelPath)}`
+    const qs = `folderId=${encodeURIComponent(folderId)}&path=${encodeURIComponent(remoteRelPath)}&requesterId=${encodeURIComponent(requesterId)}`
     http
       .get({ host, port, path: `/api/download?${qs}` }, (res) => {
         if (res.statusCode !== 200) {

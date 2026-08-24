@@ -73,6 +73,14 @@ export interface TransferProgress {
   peerId?: string
 }
 
+export interface DevicePermissionView {
+  folderId: string
+  folderName: string
+  allowBrowse: boolean
+  allowUpload: boolean
+  isCustom: boolean
+}
+
 export interface PairingRequest {
   requestId: string
   deviceId: string

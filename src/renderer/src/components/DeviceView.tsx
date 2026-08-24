@@ -3,10 +3,21 @@ import { motion } from 'framer-motion'
 import SendPanel from './SendPanel'
 import BrowsePanel from './BrowsePanel'
 import History from './History'
+import PermissionsPanel from './PermissionsPanel'
 import type { AppConfig, PeerInfo } from '../types'
 
+const TABS = ['send', 'browse', 'history', 'permissions'] as const
+type Tab = (typeof TABS)[number]
+
+const TAB_LABEL: Record<Tab, string> = {
+  send: 'Send',
+  browse: 'Browse / pull',
+  history: 'History',
+  permissions: 'Permissions'
+}
+
 export default function DeviceView({ peer, config }: { peer: PeerInfo; config: AppConfig }): JSX.Element {
-  const [tab, setTab] = useState<'send' | 'browse' | 'history'>('send')
+  const [tab, setTab] = useState<Tab>('send')
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '0 24px 24px', minHeight: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
@@ -21,7 +32,7 @@ export default function DeviceView({ peer, config }: { peer: PeerInfo; config: A
             padding: 4
           }}
         >
-          {(['send', 'browse', 'history'] as const).map((t) => (
+          {TABS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -33,7 +44,7 @@ export default function DeviceView({ peer, config }: { peer: PeerInfo; config: A
                 fontSize: 13
               }}
             >
-              {t === 'send' ? 'Send' : t === 'browse' ? 'Browse / pull' : 'History'}
+              {TAB_LABEL[t]}
             </button>
           ))}
         </div>
@@ -42,6 +53,7 @@ export default function DeviceView({ peer, config }: { peer: PeerInfo; config: A
         {tab === 'send' && <SendPanel peer={peer} />}
         {tab === 'browse' && <BrowsePanel peer={peer} config={config} />}
         {tab === 'history' && <History peerId={peer.id} />}
+        {tab === 'permissions' && <PermissionsPanel deviceId={peer.id} />}
       </motion.div>
     </div>
   )

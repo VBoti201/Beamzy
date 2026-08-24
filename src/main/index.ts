@@ -4,7 +4,15 @@ import os from 'os'
 import fs from 'fs'
 import { execSync } from 'child_process'
 import { randomUUID } from 'crypto'
-import { getConfig, updateConfig, SharedFolder, RelayConfig } from './config'
+import {
+  getConfig,
+  updateConfig,
+  SharedFolder,
+  RelayConfig,
+  effectivePermission,
+  setDevicePermission,
+  clearDevicePermission
+} from './config'
 import { Discovery, PeerInfo } from './discovery'
 import { startTransferServer, cancelIncomingTransfer } from './transferServer'
 import { pushFile, pullFile, fetchJson, notifyHistoryDelete, cancelLanTransfer } from './transferClient'
@@ -326,12 +334,16 @@ ipcMain.handle('dialog:pickFiles', async () => {
 ipcMain.handle('peers:get', () => currentPeers)
 
 ipcMain.handle('remote:list', (_e, args: { host: string; port: number; folderId: string | null; path: string }) => {
-  const qs = args.folderId ? `folderId=${encodeURIComponent(args.folderId)}&path=${encodeURIComponent(args.path || '')}` : ''
-  return fetchJson(args.host, args.port, `/api/list${qs ? `?${qs}` : ''}`)
+  const params = new URLSearchParams({ requesterId: getConfig().deviceId })
+  if (args.folderId) {
+    params.set('folderId', args.folderId)
+    params.set('path', args.path || '')
+  }
+  return fetchJson(args.host, args.port, `/api/list?${params.toString()}`)
 })
 
 ipcMain.handle('remote:targets', (_e, args: { host: string; port: number }) =>
-  fetchJson(args.host, args.port, '/api/targets')
+  fetchJson(args.host, args.port, `/api/targets?requesterId=${encodeURIComponent(getConfig().deviceId)}`)
 )
 
 ipcMain.handle(
@@ -342,7 +354,7 @@ ipcMain.handle(
     for (const filePath of args.localFilePaths) {
       const transferId = randomUUID()
       try {
-        await pushFile(args.host, args.port, args.folderId, args.destRelPath || '', filePath, transferId, (p) =>
+        await pushFile(args.host, args.port, args.folderId, args.destRelPath || '', filePath, transferId, getConfig().deviceId, (p) =>
           sendToWindow('transfer:progress', { ...p, peerId })
         )
         recordHistory({
@@ -380,7 +392,7 @@ ipcMain.handle(
     const transferId = randomUUID()
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
     const peerId = peer?.id || args.host
-    const result = await pullFile(args.host, args.port, args.folderId, args.remoteRelPath, destFolder.path, transferId, (p) =>
+    const result = await pullFile(args.host, args.port, args.folderId, args.remoteRelPath, destFolder.path, transferId, cfg.deviceId, (p) =>
       sendToWindow('transfer:progress', { ...p, peerId })
     )
     recordHistory({
@@ -420,4 +432,27 @@ ipcMain.handle('transfer:cancel', (_e, args: { transferId: string }) => {
   cancelLanTransfer(args.transferId)
   cancelIncomingTransfer(args.transferId)
   relayClient.cancelPull(args.transferId)
+})
+
+ipcMain.handle('permissions:get', (_e, args: { deviceId: string }) => {
+  const cfg = getConfig()
+  return cfg.sharedFolders.map((f) => {
+    const override = cfg.devicePermissions.find((p) => p.deviceId === args.deviceId && p.folderId === f.id)
+    const perm = effectivePermission(cfg, args.deviceId, f.id)!
+    return {
+      folderId: f.id,
+      folderName: f.name,
+      allowBrowse: perm.allowBrowse,
+      allowUpload: perm.allowUpload,
+      isCustom: !!override
+    }
+  })
+})
+
+ipcMain.handle('permissions:set', (_e, args: { deviceId: string; folderId: string; allowBrowse: boolean; allowUpload: boolean }) => {
+  setDevicePermission(args.deviceId, args.folderId, args.allowBrowse, args.allowUpload)
+})
+
+ipcMain.handle('permissions:clear', (_e, args: { deviceId: string; folderId: string }) => {
+  clearDevicePermission(args.deviceId, args.folderId)
 })

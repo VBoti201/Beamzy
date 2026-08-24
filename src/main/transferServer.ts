@@ -1,7 +1,7 @@
 import http from 'http'
 import fs from 'fs'
 import path from 'path'
-import { getConfig } from './config'
+import { getConfig, effectivePermission } from './config'
 
 export interface IncomingProgressEvent {
   direction: 'up'
@@ -48,6 +48,21 @@ function ensureDir(dir: string): void {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 }
 
+// Falls back to the folder's own default when the caller didn't report a
+// requesterId (an older client build) — otherwise resolves the requesting
+// device's own per-device override.
+function permissionFor(
+  cfg: ReturnType<typeof getConfig>,
+  requesterId: string,
+  folderId: string
+): { allowBrowse: boolean; allowUpload: boolean } | null {
+  if (!requesterId) {
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId)
+    return folder ? { allowBrowse: folder.allowBrowse, allowUpload: folder.allowUpload } : null
+  }
+  return effectivePermission(cfg, requesterId, folderId)
+}
+
 interface ActiveIncoming {
   req: http.IncomingMessage
   writeStream: fs.WriteStream
@@ -86,7 +101,7 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
       res.setHeader('Access-Control-Allow-Origin', '*')
 
       if (url.pathname === '/api/list' && req.method === 'GET') return handleList(url, res)
-      if (url.pathname === '/api/targets' && req.method === 'GET') return handleTargets(res)
+      if (url.pathname === '/api/targets' && req.method === 'GET') return handleTargets(url, res)
       if (url.pathname === '/api/download' && req.method === 'GET') return handleDownload(url, res)
       if (url.pathname === '/api/upload' && req.method === 'POST') return handleUpload(url, req, res, events)
       if (url.pathname === '/api/history-delete' && req.method === 'POST') return handleHistoryDelete(url, res, events)
@@ -102,19 +117,20 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
   function handleList(url: URL, res: http.ServerResponse): void {
     const folderId = url.searchParams.get('folderId')
     const relPath = url.searchParams.get('path') || ''
+    const requesterId = url.searchParams.get('requesterId') || ''
     const cfg = getConfig()
 
     if (!folderId) {
       const roots = cfg.sharedFolders
-        .filter((f) => f.allowBrowse)
+        .filter((f) => permissionFor(cfg, requesterId, f.id)?.allowBrowse)
         .map((f) => ({ id: f.id, name: f.name, path: '', isDir: true, isRoot: true, size: 0 }))
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify(roots))
       return
     }
 
-    const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowBrowse)
-    if (!folder) {
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId)
+    if (!folder || !permissionFor(cfg, requesterId, folderId || '')?.allowBrowse) {
       res.writeHead(403)
       res.end('forbidden')
       return
@@ -138,9 +154,12 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     res.end(JSON.stringify(list))
   }
 
-  function handleTargets(res: http.ServerResponse): void {
+  function handleTargets(url: URL, res: http.ServerResponse): void {
+    const requesterId = url.searchParams.get('requesterId') || ''
     const cfg = getConfig()
-    const targets = cfg.sharedFolders.filter((f) => f.allowUpload).map((f) => ({ id: f.id, name: f.name }))
+    const targets = cfg.sharedFolders
+      .filter((f) => permissionFor(cfg, requesterId, f.id)?.allowUpload)
+      .map((f) => ({ id: f.id, name: f.name }))
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify(targets))
   }
@@ -148,9 +167,10 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
   function handleDownload(url: URL, res: http.ServerResponse): void {
     const folderId = url.searchParams.get('folderId')
     const relPath = url.searchParams.get('path') || ''
+    const requesterId = url.searchParams.get('requesterId') || ''
     const cfg = getConfig()
-    const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowBrowse)
-    if (!folder) {
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId)
+    if (!folder || !permissionFor(cfg, requesterId, folderId || '')?.allowBrowse) {
       res.writeHead(403)
       res.end('forbidden')
       return
@@ -182,10 +202,11 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     const relPath = url.searchParams.get('path') || ''
     const fileName = decodeURIComponent(url.searchParams.get('fileName') || 'file')
     const transferId = url.searchParams.get('transferId') || ''
+    const requesterId = url.searchParams.get('requesterId') || ''
     const totalBytes = Number(req.headers['content-length'] || 0)
     const cfg = getConfig()
-    const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowUpload)
-    if (!folder) {
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId)
+    if (!folder || !permissionFor(cfg, requesterId, folderId || '')?.allowUpload) {
       res.writeHead(403)
       res.end('forbidden')
       return

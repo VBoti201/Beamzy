@@ -2,7 +2,7 @@ import WebSocket from 'ws'
 import fs from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
-import { getConfig } from './config'
+import { getConfig, effectivePermission } from './config'
 
 export interface RelayPeer {
   deviceId: string
@@ -325,7 +325,9 @@ export class RelayClient {
 
   private respondTargets(from: string, requestId: string): void {
     const cfg = getConfig()
-    const targets = cfg.sharedFolders.filter((f) => f.allowUpload).map((f) => ({ id: f.id, name: f.name }))
+    const targets = cfg.sharedFolders
+      .filter((f) => effectivePermission(cfg, from, f.id)?.allowUpload)
+      .map((f) => ({ id: f.id, name: f.name }))
     this.sendRelay(from, { kind: 'targets-response', requestId, targets })
   }
 
@@ -338,13 +340,13 @@ export class RelayClient {
     try {
       if (!folderId) {
         const roots = cfg.sharedFolders
-          .filter((f) => f.allowBrowse)
+          .filter((f) => effectivePermission(cfg, from, f.id)?.allowBrowse)
           .map((f) => ({ id: f.id, name: f.name, path: '', isDir: true, isRoot: true, size: 0 }))
         this.sendRelay(from, { kind: 'list-response', requestId, entries: roots })
         return
       }
-      const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowBrowse)
-      if (!folder) throw new Error('Folder not shared')
+      const folder = cfg.sharedFolders.find((f) => f.id === folderId)
+      if (!folder || !effectivePermission(cfg, from, folderId)?.allowBrowse) throw new Error('Folder not shared')
       const target = safeResolve(folder.path, relPath)
       const dirents = fs.readdirSync(target, { withFileTypes: true })
       const entries: RemoteEntryLike[] = dirents
@@ -409,8 +411,8 @@ export class RelayClient {
     const folderId = payload.folderId as string
     const relPath = (payload.path as string) || ''
     const cfg = getConfig()
-    const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowUpload)
-    if (!folder) {
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId)
+    if (!folder || !effectivePermission(cfg, from, folderId)?.allowUpload) {
       this.sendRelay(from, { kind: 'upload-error', transferId, message: 'Destination folder not shared for upload' })
       return
     }
@@ -517,8 +519,8 @@ export class RelayClient {
     const folderId = payload.folderId as string
     const relPath = (payload.path as string) || ''
     const cfg = getConfig()
-    const folder = cfg.sharedFolders.find((f) => f.id === folderId && f.allowBrowse)
-    if (!folder) {
+    const folder = cfg.sharedFolders.find((f) => f.id === folderId)
+    if (!folder || !effectivePermission(cfg, from, folderId)?.allowBrowse) {
       this.sendRelay(from, { kind: 'upload-error', transferId, message: 'Folder not shared' })
       return
     }
