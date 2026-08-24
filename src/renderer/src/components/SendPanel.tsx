@@ -311,7 +311,7 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
             ) : (
               <span style={{ color: targetsError ? 'var(--danger)' : 'var(--text-dim)' }}>
                 {targetsError
-                  ? "Couldn't reach the other device — try again"
+                  ? "Couldn't reach the other device, try again"
                   : 'The target device has no folder that accepts uploads'}
               </span>
             )}

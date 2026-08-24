@@ -7,11 +7,11 @@ function describe(status: UpdateStatus | null): { text: string; color: string } 
     case 'checking':
       return { text: 'Checking for updates…', color: 'var(--text-dim)' }
     case 'available':
-      return { text: `Update v${status.version} found — starting download…`, color: 'var(--accent-2)' }
+      return { text: `Update v${status.version} found, starting download…`, color: 'var(--accent-2)' }
     case 'downloading':
       return { text: `Downloading v${status.version || ''}… ${status.percent || 0}%`, color: 'var(--accent-2)' }
     case 'downloaded':
-      return { text: `Update v${status.version} downloaded — restart to install`, color: 'var(--success)' }
+      return { text: `Update v${status.version} downloaded, restart to install`, color: 'var(--success)' }
     case 'not-available':
       return { text: "You're on the latest version.", color: 'var(--success)' }
     case 'error':

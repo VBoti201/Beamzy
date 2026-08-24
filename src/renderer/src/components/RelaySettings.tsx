@@ -103,7 +103,7 @@ export default function RelaySettings({
               </button>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-              This is permanent and stays yours — share it with another device so it can connect to you.
+              This is permanent and stays yours. Share it with another device so it can connect to you.
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export default function RelaySettings({
               </button>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-              Type the other device&apos;s code and hit Pair — it'll need to approve you on its side.
+              Type the other device&apos;s code and hit Pair. It'll need to approve you on its side.
             </div>
             {pairError && <div style={{ fontSize: 12, color: 'var(--danger)', marginTop: 6 }}>{pairError}</div>}
             {pairSuccess && <div style={{ fontSize: 12, color: 'var(--success)', marginTop: 6 }}>Connected!</div>}

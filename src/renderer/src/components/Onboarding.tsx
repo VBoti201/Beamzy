@@ -97,7 +97,7 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
           Share folders
         </label>
         <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.5, margin: '4px 0 0' }}>
-          Choose which folders your other devices can access — they&apos;ll only ever see these.
+          Choose which folders your other devices can access. They&apos;ll only ever see these.
           &quot;Browsable&quot;: others can look through it and pull files from it. &quot;Accepts
           uploads&quot;: others can send files here.
         </p>
