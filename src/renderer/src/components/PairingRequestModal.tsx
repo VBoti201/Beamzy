@@ -67,7 +67,7 @@ export default function PairingRequestModal({
         <div>
           <div style={{ fontWeight: 700, fontSize: 16 }}>{request.name}</div>
           <div style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 4 }}>
-            {request.source === 'lan' ? 'found on your network — allow it to connect?' : 'wants to connect to this pair'}
+            {request.source === 'lan' ? 'found on your network — allow it to connect?' : 'wants to connect to this device'}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, width: '100%', marginTop: 6 }}>

@@ -45,9 +45,9 @@ const store = new Store<AppConfig>({
     onboarded: false,
     sharedFolders: [],
     // On by default: the relay is a shared backend service (one deployment
-    // serves every pair of end-user devices, isolated by pairId), not
-    // something each user has to run themselves — so remote access should
-    // just work out of the box, no Settings-diving required.
+    // serves every user, each device isolated by its own permanent code),
+    // not something each user has to run themselves — so remote access
+    // should just work out of the box, no Settings-diving required.
     relay: { enabled: true, url: DEFAULT_RELAY_URL, pairId: '' },
     devicePermissions: []
   }

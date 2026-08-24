@@ -43,8 +43,8 @@ menet közben, a tényleges forgalom alapján felskálázni.
 **A relay szándékosan minimális támadási felületű:**
 
 - **Nincs fájltárolás** — a relay memóriában, azonnal továbbítja az adatot, sosem írja lemezre. Ha valaki fel is töri a VPS-t, korábbi átviteleket nem tud visszanézni belőle (nincs mit).
-- **Nincs felhasználói fiók/jelszó** — a hozzáférés kulcsa a **párosító kód**: egy rövid (6 karakteres, kötőjellel tagolt, pl. `AB3-K9Q`), kényelmesen begépelhető kód, amit csak a te két géped ismer. Ez lényegesen kevesebb kombináció, mint egy UUID, ezért a `server.js` IP-nkénti rate limitet alkalmaz az új kapcsolódási kísérletekre (alapból percenként ~20), hogy a kód végigpróbálgatása ne legyen praktikus — ez a `MIN_PAIR_ID_LENGTH`/`RATE_LIMIT_*` konstansokkal hangolható a fájl tetején.
-- **A relay csak a saját szobádon (pairId) belül forwardol** — más, ismeretlen párosító kóddal csatlakozó idegen eszköz sosem látja a tiédet, és fordítva.
+- **Nincs felhasználói fiók/jelszó** — a hozzáférés kulcsa a **párosító kód**: egy rövid (6 karakteres, kötőjellel tagolt, pl. `AB3-K9Q`), kényelmesen begépelhető kód, amit csak a te két géped ismer. Ez lényegesen kevesebb kombináció, mint egy UUID, ezért a `server.js` IP-nkénti rate limitet alkalmaz az új kapcsolódási kísérletekre (alapból percenként ~20), hogy a kód végigpróbálgatása ne legyen praktikus — ez a `MIN_CODE_LENGTH`/`RATE_LIMIT_*` konstansokkal hangolható a fájl tetején.
+- **A relay csak jóváhagyott, összekötött eszközök között forwardol** — minden eszköznek saját, állandó kódja van, és csak azok az eszközök látják egymást, amelyek kifejezetten jóváhagyták egymást. Egy idegen, ismeretlen kóddal csatlakozó eszköz sosem lát senkit, amíg valamelyik oldal jóvá nem hagyja.
 
 **Amit viszont neked kell beállítanod, hogy tényleg biztonságos legyen:**
 

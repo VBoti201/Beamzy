@@ -4,11 +4,17 @@ import { v4 as uuidv4 } from 'uuid'
 import SharedFolderEditor from './SharedFolderEditor'
 import type { AppConfig, SharedFolder } from '../types'
 
+function formatPairingCode(raw: string): string {
+  const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+  return clean.length > 3 ? `${clean.slice(0, 3)}-${clean.slice(3)}` : clean
+}
+
 export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => void }): JSX.Element {
   const [name, setName] = useState('')
   const [nameLoaded, setNameLoaded] = useState(false)
   const [folders, setFolders] = useState<SharedFolder[]>([])
-  const [pairCode, setPairCode] = useState('')
+  const [myCode, setMyCode] = useState('')
+  const [connectCode, setConnectCode] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -28,9 +34,9 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
     })
     window.api.getConfig().then((cfg) => {
       if (cfg.relay.pairId) {
-        setPairCode(cfg.relay.pairId)
+        setMyCode(cfg.relay.pairId)
       } else {
-        window.api.relaySetEnabled({ enabled: true, url: cfg.relay.url }).then((relay) => setPairCode(relay.pairId))
+        window.api.relaySetEnabled({ enabled: true, url: cfg.relay.url }).then((relay) => setMyCode(relay.pairId))
       }
     })
   }, [])
@@ -42,9 +48,14 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
       sharedFolders: folders,
       onboarded: true
     })
-    if (pairCode.trim()) {
-      const relay = await window.api.relayPair({ code: pairCode })
-      cfg.relay = relay
+    if (connectCode.trim()) {
+      try {
+        await window.api.relayPair({ code: connectCode })
+      } catch {
+        // The other device might not be online yet, or declined — either
+        // way, this is optional at onboarding time. It can always be
+        // retried from Settings afterward.
+      }
     }
     onDone(cfg)
   }
@@ -95,13 +106,34 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
         </div>
 
         <label style={{ fontSize: 13, color: 'var(--text-dim)', display: 'block', marginTop: 20 }}>
-          Pairing code — links your devices for remote access
+          Your code
         </label>
         <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.5, margin: '4px 0 0' }}>
-          Setting up your <strong>first</strong> Beamzy device? Just leave this code as-is. Setting up a{' '}
-          <strong>second</strong> device to pair with one you already set up? Replace it with the code shown on
-          that device (Settings). Devices with the same code can send files to each other even off your local
-          network.
+          This is permanent and stays yours. Share it with another device (from its Settings) so it can connect
+          to you for remote access, even off your local network.
+        </p>
+        <input
+          className="input"
+          readOnly
+          style={{
+            width: '100%',
+            marginTop: 8,
+            fontFamily: 'monospace',
+            fontSize: 18,
+            fontWeight: 700,
+            letterSpacing: 2,
+            textAlign: 'center'
+          }}
+          value={myCode}
+          placeholder={myCode ? '' : 'Generating…'}
+        />
+
+        <label style={{ fontSize: 13, color: 'var(--text-dim)', display: 'block', marginTop: 20 }}>
+          Connect to a device (optional)
+        </label>
+        <p style={{ color: 'var(--text-dim)', fontSize: 13, lineHeight: 1.5, margin: '4px 0 0' }}>
+          Already set up another Beamzy device? Type its code here and it'll get a request to approve you. You
+          can always do this later from Settings instead.
         </p>
         <input
           className="input"
@@ -114,9 +146,10 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
             letterSpacing: 2,
             textAlign: 'center'
           }}
-          value={pairCode}
-          placeholder={pairCode ? '' : 'Generating…'}
-          onChange={(e) => setPairCode(e.target.value.toUpperCase())}
+          placeholder="XXX-XXX"
+          value={connectCode}
+          maxLength={7}
+          onChange={(e) => setConnectCode(formatPairingCode(e.target.value))}
         />
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>

@@ -32,6 +32,7 @@ interface RemoteEntryLike {
 
 const CHUNK_SIZE = 256 * 1024
 const REQUEST_TIMEOUT_MS = 10000
+const CONNECT_TIMEOUT_MS = 65000 // a hair past the relay's own 60s pairing-request timeout
 
 function safeResolve(root: string, relPath: string): string {
   const normalizedRoot = path.normalize(root)
@@ -108,6 +109,7 @@ export class RelayClient {
   private ws: WebSocket | null = null
   private reconnectTimer: NodeJS.Timeout | null = null
   private pendingRequests = new Map<string, PendingRequest>()
+  private pendingConnects = new Map<string, { resolve: () => void; reject: (e: Error) => void; timer: NodeJS.Timeout }>()
   private pendingPulls = new Map<string, PendingPull>()
   private incomingWrites = new Map<string, IncomingWrite>()
   private outgoingPushes = new Map<string, { fileName: string; totalBytes: number }>()
@@ -142,7 +144,7 @@ export class RelayClient {
     let target: string
     try {
       const base = this.url.replace(/\/+$/, '')
-      const qs = `pairId=${encodeURIComponent(this.pairId)}&deviceId=${encodeURIComponent(this.deviceId)}&name=${encodeURIComponent(this.deviceName)}&platform=${encodeURIComponent(process.platform)}`
+      const qs = `code=${encodeURIComponent(this.pairId)}&deviceId=${encodeURIComponent(this.deviceId)}&name=${encodeURIComponent(this.deviceName)}&platform=${encodeURIComponent(process.platform)}`
       target = `${base}/ws?${qs}`
     } catch {
       this.callbacks.onStatus('error')
@@ -153,9 +155,11 @@ export class RelayClient {
     const ws = new WebSocket(target)
     this.ws = ws
 
-    // The socket is open, but not yet admitted to the room — a brand new
-    // device may need another admitted device to approve it first. Status
-    // flips to 'connected' only once the server sends 'pairing-admitted'.
+    // Connecting under your own permanent code needs no one else's
+    // approval — the server admits it immediately and sends a bare
+    // 'pairing-admitted' (no requestId) once it does. Status flips to
+    // 'connected' only then, not just on the socket opening, so a
+    // rejected/blocked code still surfaces as an error via 'close'.
     ws.on('open', () => this.callbacks.onStatus('connecting'))
     ws.on('message', (data) => this.handleMessage(data.toString()))
     ws.on('close', () => {
@@ -204,6 +208,17 @@ export class RelayClient {
     })
   }
 
+  private resolvePendingConnect(correlationId: string | undefined, err?: Error): boolean {
+    if (!correlationId) return false
+    const pending = this.pendingConnects.get(correlationId)
+    if (!pending) return false
+    clearTimeout(pending.timer)
+    this.pendingConnects.delete(correlationId)
+    if (err) pending.reject(err)
+    else pending.resolve()
+    return true
+  }
+
   private handleMessage(raw: string): void {
     let msg: {
       type: string
@@ -212,6 +227,7 @@ export class RelayClient {
       message?: string
       payload?: Record<string, unknown>
       requestId?: string
+      correlationId?: string
       deviceId?: string
       name?: string
       platform?: string
@@ -230,14 +246,26 @@ export class RelayClient {
       return
     }
     if (msg.type === 'error') {
+      // A correlationId means this is a reply to our own connect request
+      // (e.g. "device not online") — reject just that promise. Otherwise
+      // it's an unrelated relay-protocol error, already handled at the
+      // call site that triggered it.
+      this.resolvePendingConnect(msg.correlationId, new Error(msg.message || 'Request failed'))
       return
     }
     if (msg.type === 'pairing-admitted') {
-      this.callbacks.onStatus('connected')
+      // With a correlationId, this is "the device you asked to connect to
+      // just approved you" — resolve that specific request only. Without
+      // one, it's the server confirming our own socket (connecting under
+      // our own permanent code needs nobody's approval), so the overall
+      // relay connection is up.
+      if (!this.resolvePendingConnect(msg.correlationId)) this.callbacks.onStatus('connected')
       return
     }
     if (msg.type === 'pairing-pending') {
-      this.callbacks.onStatus('connecting')
+      // Acknowledgement that our connect request reached the target and
+      // is awaiting their approval — nothing to do yet but wait for
+      // pairing-admitted/pairing-rejected/pairing-timeout to resolve it.
       return
     }
     if (msg.type === 'pairing-request' && msg.requestId && msg.deviceId) {
@@ -250,20 +278,18 @@ export class RelayClient {
       return
     }
     if (msg.type === 'pairing-timeout') {
-      // Nobody happened to be around to approve this time — a plain
-      // reconnect attempt in a few seconds gives another chance rather
-      // than requiring the user to notice and manually retry.
-      this.callbacks.onStatus('error')
+      this.resolvePendingConnect(msg.correlationId, new Error('The other device did not respond in time'))
       return
     }
-    if (msg.type === 'pairing-rejected' || msg.type === 'kicked') {
-      // A deliberate reject/kick from another device — auto-reconnecting
-      // every few seconds would just spam that device with the same
-      // approval prompt again and again. Stop until the user explicitly
-      // re-enables remote access or re-pairs. disconnect() removes this
-      // socket's listeners before closing it, so the normal
-      // ws.on('close') reconnect path never fires for this case.
-      this.disconnect()
+    if (msg.type === 'pairing-rejected') {
+      this.resolvePendingConnect(msg.correlationId, new Error(msg.message || 'The other device declined'))
+      return
+    }
+    if (msg.type === 'kicked') {
+      // One specific link was severed (by the other device, or by an
+      // abuse block) — our own connection to the relay stays up, we just
+      // lose that one peer. The server's own presence update already
+      // drops them from everyone's list; nothing else to do here.
       return
     }
     if (msg.type !== 'relay' || !msg.from || !msg.payload) return
@@ -655,6 +681,27 @@ export class RelayClient {
   private sendControl(obj: Record<string, unknown>): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
     this.ws.send(JSON.stringify(obj))
+  }
+
+  // Asks the relay to link this device with whoever currently owns
+  // targetCode. Resolves once they approve (or we already had an approved
+  // link), rejects if they're offline, decline, or don't answer in time.
+  // Never touches our own connection/identity — unlike the old model,
+  // "pairing" no longer means becoming someone else's code.
+  requestConnect(targetCode: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+        reject(new Error('Not connected to the relay'))
+        return
+      }
+      const correlationId = randomUUID()
+      const timer = setTimeout(() => {
+        this.pendingConnects.delete(correlationId)
+        reject(new Error('Timed out waiting for a response'))
+      }, CONNECT_TIMEOUT_MS)
+      this.pendingConnects.set(correlationId, { resolve, reject, timer })
+      this.sendControl({ type: 'connect', targetCode: targetCode.toUpperCase(), correlationId })
+    })
   }
 
   approvePairing(requestId: string): void {

@@ -22,6 +22,7 @@ import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './update
 import { generateUniquePairingCode } from './constants'
 import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
 import { isLanDeviceApproved, approveLanDevice, forgetLanDevice } from './lanTrust'
+import { needsRelayCodeMigration, markRelayCodeMigrated } from './migrations'
 import { zipDirectory } from './zip'
 
 // bonjour-service's mDNS multicast socket lives deep inside a dependency
@@ -194,7 +195,20 @@ async function bootstrap(): Promise<void> {
   })
   closeServer = close
 
-  const cfg = getConfig()
+  let cfg = getConfig()
+
+  // Devices that paired under the old shared-code model both have the
+  // same pairId stored — under the new per-device model that's an
+  // identity collision waiting to happen. Mint a fresh one, once, before
+  // ever connecting to the relay with it.
+  if (needsRelayCodeMigration()) {
+    markRelayCodeMigrated()
+    if (cfg.relay.pairId) {
+      const freshCode = await generateUniquePairingCode(cfg.relay.url)
+      cfg = updateConfig({ relay: { ...cfg.relay, pairId: freshCode } })
+    }
+  }
+
   discovery = new Discovery((peers) => {
     lastRawLanPeers = peers
     refreshLanPeers()
@@ -309,13 +323,11 @@ ipcMain.handle('lan:forget-device', (_e, args: { deviceId: string }) => {
   refreshLanPeers()
 })
 
-ipcMain.handle('relay:pair', (_e, args: { code: string }) => {
-  const cfg = getConfig()
-  const code = args.code.trim().toUpperCase()
-  const updated = updateConfig({ relay: { ...cfg.relay, enabled: true, pairId: code } })
-  syncRelayClient(updated)
-  return updated.relay
-})
+// Unlike the old model, this never changes our own identity/code — it
+// just asks the relay to link us with whoever currently holds the code
+// the user typed in. Resolves once they approve, rejects if they're
+// offline, decline, or don't answer in time.
+ipcMain.handle('relay:pair', (_e, args: { code: string }) => relayClient.requestConnect(args.code.trim()))
 
 ipcMain.handle('relay:list', (_e, args: { peerId: string; folderId: string | null; path: string }) =>
   relayClient.listFolder(args.peerId, args.folderId, args.path)
