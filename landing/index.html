@@ -20,6 +20,7 @@
     --on-accent: #14100a;
     --highlight-bg: rgba(255, 214, 10, 0.2);
     --step-bg: rgba(255, 255, 255, 0.05);
+    --faq-bg: rgba(0, 0, 0, 0.22);
     --radius: 16px;
     --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   }
@@ -36,6 +37,7 @@
     --on-accent: #fffaf0;
     --highlight-bg: rgba(217, 148, 0, 0.22);
     --step-bg: rgba(30, 22, 8, 0.04);
+    --faq-bg: var(--card);
     --shadow: 0 20px 50px rgba(80, 60, 20, 0.18);
   }
 
@@ -292,7 +294,7 @@
   .faq { max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
   .faq details {
     position: relative; overflow: hidden;
-    background: var(--card); border: 1px solid var(--card-border);
+    background: var(--faq-bg); border: 1px solid var(--card-border);
     border-radius: 14px; padding: 18px 20px;
     transition: border-color 0.18s ease;
   }
