@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import type { PairingRequest } from '../types'
 import macIcon from '../assets/platform/mac.svg'
 import windowsIcon from '../assets/platform/windows.svg'
+import { isWindows } from '../platform'
 
 function platformIcon(platform?: string): string | null {
   if (platform === 'darwin') return macIcon
@@ -28,8 +29,7 @@ export default function PairingRequestModal({
         position: 'fixed',
         inset: 0,
         background: 'rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        ...(isWindows ? {} : { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

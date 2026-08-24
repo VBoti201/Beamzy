@@ -23,6 +23,23 @@ import { generateUniquePairingCode } from './constants'
 import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
 import { isLanDeviceApproved, approveLanDevice, forgetLanDevice } from './lanTrust'
 
+// bonjour-service's mDNS multicast socket lives deep inside a dependency
+// (multicast-dns -> dgram) where we can't attach our own 'error' listener
+// at the source. A network interface dropping mid-send (sleep/wake, WiFi
+// switching, VPN toggling — including right as the app quits for an
+// update) surfaces here as an uncaught exception that would otherwise take
+// the whole app down. It's transient and harmless to the rest of the app,
+// so swallow just this known class and let anything else crash normally
+// (re-throwing from inside this handler is itself fatal, same as if we'd
+// never registered one).
+process.on('uncaughtException', (err: NodeJS.ErrnoException) => {
+  if (err?.code === 'EADDRNOTAVAIL' || err?.code === 'ENETUNREACH' || err?.code === 'EHOSTUNREACH') {
+    console.error('[mDNS] transient network error, continuing:', err.message)
+    return
+  }
+  throw err
+})
+
 function getFriendlySystemName(): string {
   if (process.platform === 'darwin') {
     try {

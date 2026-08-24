@@ -4,6 +4,7 @@ import SharedFolderEditor from './SharedFolderEditor'
 import RelaySettings from './RelaySettings'
 import UpdateSection from './UpdateSection'
 import type { AppConfig, RelayStatus, UpdateStatus } from '../types'
+import { isWindows } from '../platform'
 
 export default function SettingsModal({
   config,
@@ -40,8 +41,7 @@ export default function SettingsModal({
         position: 'fixed',
         inset: 0,
         background: 'rgba(0,0,0,0.5)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        ...(isWindows ? {} : { backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

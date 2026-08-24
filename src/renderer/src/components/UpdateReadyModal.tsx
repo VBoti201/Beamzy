@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import type { UpdateStatus } from '../types'
+import { isWindows } from '../platform'
 
 function formatDate(iso?: string): string {
   if (!iso) return ''
@@ -29,8 +30,7 @@ export default function UpdateReadyModal({
         position: 'fixed',
         inset: 0,
         background: 'rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
+        ...(isWindows ? {} : { backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

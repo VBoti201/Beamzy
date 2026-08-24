@@ -134,7 +134,10 @@ export default function Dashboard({
                 className="card"
                 style={{
                   position: 'absolute',
-                  top: 10,
+                  // Clears both the native window controls and the
+                  // floating sidebar-toggle button (top: 34, ~26px tall)
+                  // that floats above this panel — it was overlapping both.
+                  top: 56,
                   left: RAIL_WIDTH,
                   bottom: 10,
                   width: SIDEBAR_WIDTH,
