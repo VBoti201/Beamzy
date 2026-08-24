@@ -72,6 +72,30 @@ const RATE_LIMIT_WINDOW_MS = 60 * 1000
 const RATE_LIMIT_MAX_ATTEMPTS = 20 // new connection attempts per IP per window
 const PAIRING_REQUEST_TIMEOUT_MS = 60 * 1000
 
+const BLOCKED_FILE = path.join(__dirname, 'blocked-pairids.json')
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || ''
+
+// Lets the operator cut off a specific pairId (e.g. after an abuse report)
+// without touching anyone else's rooms or restarting the process. Persisted
+// so a plain restart doesn't quietly un-block something.
+let blockedPairIds = new Set()
+try {
+  blockedPairIds = new Set(JSON.parse(fs.readFileSync(BLOCKED_FILE, 'utf8')))
+} catch {
+  // no file yet, or unreadable — start with nothing blocked
+}
+function saveBlocked() {
+  try {
+    fs.writeFileSync(BLOCKED_FILE, JSON.stringify([...blockedPairIds]))
+  } catch {
+    // best-effort only
+  }
+}
+function isAuthorized(req) {
+  if (!ADMIN_TOKEN) return false // fail closed if no token is configured
+  return req.headers.authorization === `Bearer ${ADMIN_TOKEN}`
+}
+
 // pairId -> Map<deviceId, { ws, name, platform }> — currently-connected,
 // admitted members only.
 const rooms = new Map()
@@ -200,6 +224,27 @@ function rejectPending(pairId, requestId, reason) {
   entry.ws.close(4009, reason)
 }
 
+function blockPairId(pairId) {
+  blockedPairIds.add(pairId)
+  saveBlocked()
+  const room = rooms.get(pairId)
+  if (room) {
+    for (const info of room.values()) {
+      send(info.ws, { type: 'kicked', reason: 'blocked' })
+      info.ws.close(4013, 'this pairing code has been blocked')
+    }
+    rooms.delete(pairId)
+  }
+  const pending = pendingJoins.get(pairId)
+  if (pending) {
+    for (const entry of pending.values()) {
+      clearTimeout(entry.timer)
+      entry.ws.close(4013, 'this pairing code has been blocked')
+    }
+    pendingJoins.delete(pairId)
+  }
+}
+
 function kickDevice(pairId, deviceId) {
   const approved = approvedDevices.get(pairId)
   if (approved) approved.delete(deviceId)
@@ -225,6 +270,46 @@ const httpServer = http.createServer(async (req, res) => {
     const room = rooms.get(code)
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ inUse: !!room && room.size > 0 }))
+    return
+  }
+  if (url.pathname === '/admin/block' && req.method === 'POST') {
+    if (!isAuthorized(req)) {
+      res.writeHead(401)
+      res.end('unauthorized')
+      return
+    }
+    const code = (url.searchParams.get('pairId') || '').toUpperCase()
+    if (!code) {
+      res.writeHead(400)
+      res.end('missing pairId')
+      return
+    }
+    blockPairId(code)
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ blocked: code }))
+    return
+  }
+  if (url.pathname === '/admin/unblock' && req.method === 'POST') {
+    if (!isAuthorized(req)) {
+      res.writeHead(401)
+      res.end('unauthorized')
+      return
+    }
+    const code = (url.searchParams.get('pairId') || '').toUpperCase()
+    blockedPairIds.delete(code)
+    saveBlocked()
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ unblocked: code }))
+    return
+  }
+  if (url.pathname === '/admin/blocked' && req.method === 'GET') {
+    if (!isAuthorized(req)) {
+      res.writeHead(401)
+      res.end('unauthorized')
+      return
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify([...blockedPairIds]))
     return
   }
   if (url.pathname === '/downloads/count') {
@@ -267,6 +352,11 @@ wss.on('connection', (ws, req) => {
 
   if (!pairId || pairId.length < MIN_PAIR_ID_LENGTH || !deviceId) {
     ws.close(4000, 'missing or weak pairId/deviceId')
+    return
+  }
+
+  if (blockedPairIds.has(pairId)) {
+    ws.close(4013, 'this pairing code has been blocked')
     return
   }
 

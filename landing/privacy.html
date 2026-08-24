@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Beamzy · Privacy policy</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ffd60a'/%3E%3C/svg%3E" />
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #08080a;
+    --nav-bg: rgba(18, 18, 20, 0.72);
+    --card: rgba(255, 255, 255, 0.045);
+    --card-border: rgba(255, 255, 255, 0.09);
+    --text: #f2f2ee;
+    --text-dim: #9a9a91;
+    --accent: #ffd60a;
+    --accent-2: #ffb800;
+    --on-accent: #14100a;
+  }
+  html[data-theme='light'] {
+    color-scheme: light;
+    --bg: #f5ecd8;
+    --nav-bg: rgba(245, 236, 216, 0.78);
+    --card: rgba(30, 22, 8, 0.045);
+    --card-border: rgba(30, 22, 8, 0.1);
+    --text: #211a0e;
+    --text-dim: #7a6d54;
+    --accent: #d99400;
+    --accent-2: #bf7f00;
+    --on-accent: #fffaf0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px 80px; }
+  a { color: var(--accent-2); }
+
+  .nav-shell { position: sticky; top: 16px; z-index: 50; padding: 0 16px; margin-bottom: 40px; }
+  nav {
+    max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 14px;
+    padding: 10px 12px 10px 16px; border-radius: 999px;
+    background: var(--nav-bg); border: 1px solid var(--card-border);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+  .brand { display: flex; align-items: center; gap: 9px; margin-right: auto; text-decoration: none; }
+  .brand .word { font-weight: 800; font-size: 16px; letter-spacing: -0.3px; color: var(--text); }
+  .theme-toggle {
+    width: 34px; height: 34px; border-radius: 50%; margin-left: auto;
+    border: 1px solid var(--card-border); background: var(--card);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text);
+  }
+  .theme-toggle svg { width: 15px; height: 15px; }
+  .theme-toggle .sun { display: none; }
+  html[data-theme='light'] .theme-toggle .sun { display: block; }
+  html[data-theme='light'] .theme-toggle .moon { display: none; }
+  .back { font-size: 13px; color: var(--text-dim); text-decoration: none; }
+
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.6px; margin: 0 0 6px; }
+  .updated { color: var(--text-dim); font-size: 13px; margin-bottom: 40px; }
+  h2 { font-size: 18px; font-weight: 700; margin: 32px 0 10px; }
+  p, li { color: var(--text-dim); font-size: 15px; line-height: 1.65; }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 6px; }
+  strong { color: var(--text); }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--card-border); font-size: 14px; color: var(--text-dim); }
+  th { color: var(--text); font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="nav-shell">
+    <nav>
+      <a class="brand" href="index.html">
+        <svg width="26" height="26" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="230" fill="#0d0d10"/><g fill="#FFD60A"><g transform="translate(575.5,575.5) rotate(-45)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g><g transform="translate(448.5,448.5) rotate(135)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g></g></svg>
+        <span class="word">Beamzy</span>
+      </a>
+      <a class="back" href="index.html">← Back</a>
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle light/dark theme" type="button">
+        <svg class="moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" fill="currentColor"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </nav>
+  </div>
+
+  <div class="wrap">
+    <h1>Privacy policy</h1>
+    <div class="updated">Last updated: August 24, 2026</div>
+
+    <p>Beamzy is built to move files directly between your own devices, not through a cloud service that stores or reads them. This page explains the little data that does pass through the developer's infrastructure while making that possible.</p>
+
+    <h2>What Beamzy never sees</h2>
+    <p>File contents are never stored on or inspected by the relay service. When two devices are on the same network, files go directly between them and never touch the developer's servers at all. When devices connect remotely, file data is streamed through the relay in transit only, the same way a phone call passes through an exchange, and isn't logged or retained.</p>
+
+    <h2>What is processed, and why</h2>
+    <table>
+      <tr><th>Data</th><th>Purpose</th><th>Retention</th></tr>
+      <tr><td>Pairing code</td><td>Lets your two devices find each other on the relay</td><td>Held only while a device is connected</td></tr>
+      <tr><td>Device name &amp; platform (Mac/Windows)</td><td>Shown to your other device so you know what you're sending to</td><td>Held only while connected</td></tr>
+      <tr><td>IP address</td><td>Needed to route the connection; also used for basic rate-limiting against abuse</td><td>Not persisted beyond the active connection</td></tr>
+      <tr><td>Download counts</td><td>The public counter on the website</td><td>Aggregate numbers only — no data about who downloaded</td></tr>
+    </table>
+
+    <h2>No accounts, no third parties</h2>
+    <p>Beamzy doesn't ask you to create an account and doesn't share data with advertisers, analytics providers, or any other third party. There's no tracking beyond the aggregate download counter described above.</p>
+
+    <h2>Your rights</h2>
+    <p>Since almost nothing is retained beyond an active connection, there's very little to request access to or deletion of. If you have questions about what's processed or want something clarified or removed, contact the developer using the details below — this applies to residents of the EU/EEA under the GDPR and to users elsewhere alike.</p>
+
+    <h2>Changes</h2>
+    <p>This policy may be updated as the app changes. Meaningful changes will be reflected here with an updated date.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy can be sent to <a href="mailto:verdesboti@icloud.com">verdesboti@icloud.com</a>.</p>
+  </div>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var saved = localStorage.getItem('beamzy-theme');
+      if (saved === 'light' || saved === 'dark') root.setAttribute('data-theme', saved);
+      document.getElementById('themeToggle').addEventListener('click', function () {
+        var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('beamzy-theme', next); } catch (e) {}
+      });
+    })();
+  </script>
+</body>
+</html>
