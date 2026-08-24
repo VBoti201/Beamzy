@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { PeerInfo } from '../types'
 import { GlobeIcon, TrashIcon } from '../icons'
@@ -8,6 +9,30 @@ function platformIcon(platform?: string): string | null {
   if (platform === 'darwin') return macIcon
   if (platform === 'win32') return windowsIcon
   return null
+}
+
+const EMPTY_MESSAGES = ['Searching your network…', 'Open Beamzy on the other device', 'Or pair with a code in Settings']
+
+function EmptyStateMessage(): JSX.Element {
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    const interval = setInterval(() => setI((n) => (n + 1) % EMPTY_MESSAGES.length), 2800)
+    return () => clearInterval(interval)
+  }, [])
+  return (
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={i}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -4 }}
+        transition={{ duration: 0.3 }}
+        style={{ display: 'block' }}
+      >
+        {EMPTY_MESSAGES[i]}
+      </motion.span>
+    </AnimatePresence>
+  )
 }
 
 export default function PeerList({
@@ -30,11 +55,7 @@ export default function PeerList({
             exit={{ opacity: 0 }}
             style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}
           >
-            Searching your network…
-            <br />
-            Open Beamzy on the other device too, it'll show up here on its own.
-            <br />
-            On a different network? Pair with a code in Settings instead.
+            <EmptyStateMessage />
           </motion.div>
         )}
         {peers.map((p) => (
