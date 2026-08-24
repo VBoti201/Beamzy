@@ -39,6 +39,16 @@ export default function SettingsModal({
     onClose()
   }
 
+  // Relay/theme changes apply immediately as you make them, but name and
+  // folders only take effect on Save — closing without saving would
+  // silently throw those away, so ask first.
+  const isDirty = name.trim() !== config.deviceName || JSON.stringify(folders) !== JSON.stringify(config.sharedFolders)
+
+  const requestClose = (): void => {
+    if (isDirty && !window.confirm('Discard unsaved changes?')) return
+    onClose()
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -54,7 +64,7 @@ export default function SettingsModal({
         justifyContent: 'center',
         zIndex: 100
       }}
-      onClick={onClose}
+      onClick={requestClose}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
@@ -112,7 +122,7 @@ export default function SettingsModal({
         <UpdateSection updateStatus={updateStatus} />
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24 }}>
-          <button className="btn secondary" onClick={onClose}>
+          <button className="btn secondary" onClick={requestClose}>
             Cancel
           </button>
           <button className="btn" disabled={saving} onClick={save}>
