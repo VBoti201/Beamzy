@@ -17,6 +17,7 @@
     --accent: #ffd60a;
     --accent-2: #ffb800;
     --on-accent: #14100a;
+    --icon-bg: #0d0d10;
   }
   html[data-theme='light'] {
     color-scheme: light;
@@ -29,6 +30,7 @@
     --accent: #d99400;
     --accent-2: #bf7f00;
     --on-accent: #fffaf0;
+    --icon-bg: #efeff0;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -86,7 +88,7 @@
   <div class="nav-shell">
     <nav>
       <a class="brand" href="index.html">
-        <svg width="26" height="26" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="230" fill="#0d0d10"/><g fill="#FFD60A"><g transform="translate(575.5,575.5) rotate(-45)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g><g transform="translate(448.5,448.5) rotate(135)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g></g></svg>
+        <svg width="26" height="26" viewBox="0 0 1024 1024"><rect width="1024" height="1024" rx="230" fill="var(--icon-bg)"/><g fill="#FFD60A"><g transform="translate(575.5,575.5) rotate(-45)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g><g transform="translate(448.5,448.5) rotate(135)"><line x1="-190" y1="0" x2="118" y2="0" stroke="#FFD60A" stroke-width="80" stroke-linecap="round"/><polygon points="200,0 66,-104 66,104"/></g></g></svg>
         <span class="word">Beamzy</span>
       </a>
       <a class="theme-toggle" href="privacy.html" aria-label="Privacy &amp; security">
