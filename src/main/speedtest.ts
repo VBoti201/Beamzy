@@ -12,10 +12,22 @@ function downloadTest(bytes: number): Promise<number> {
     let received = 0
     https
       .get(`https://speed.cloudflare.com/__down?bytes=${bytes}`, (res) => {
+        if (res.statusCode !== 200) {
+          res.resume()
+          reject(new Error(`Download test failed: ${res.statusCode}`))
+          return
+        }
         res.on('data', (chunk: Buffer) => {
           received += chunk.length
         })
         res.on('end', () => {
+          // A redirect, a blocked request, or some other hiccup can end
+          // the response with little or no body despite a 200 — treat
+          // that as a failed measurement rather than reporting ~0 Mbps.
+          if (received < bytes * 0.5) {
+            reject(new Error('Download test returned too little data'))
+            return
+          }
           const seconds = (Date.now() - start) / 1000
           resolve((received * 8) / seconds / 1_000_000)
         })
@@ -37,6 +49,11 @@ function uploadTest(bytes: number): Promise<number> {
         headers: { 'Content-Length': payload.length, 'Content-Type': 'application/octet-stream' }
       },
       (res) => {
+        if (res.statusCode !== 200) {
+          res.resume()
+          reject(new Error(`Upload test failed: ${res.statusCode}`))
+          return
+        }
         res.on('data', () => {})
         res.on('end', () => {
           const seconds = (Date.now() - start) / 1000

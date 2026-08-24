@@ -13,8 +13,11 @@ function formatDuration(seconds: number): string {
   if (seconds < 1) return '<1s'
   if (seconds < 60) return `${Math.round(seconds)}s`
   const mins = Math.floor(seconds / 60)
-  const secs = Math.round(seconds % 60)
-  return `${mins}m ${secs}s`
+  if (mins < 60) return `${mins}m ${Math.round(seconds % 60)}s`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ${mins % 60}m`
+  const days = Math.floor(hours / 24)
+  return `${days}d ${hours % 24}h`
 }
 
 export default function SpeedTest(): JSX.Element {
