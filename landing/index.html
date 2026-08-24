@@ -270,9 +270,19 @@
   /* faq */
   .faq { max-width: 700px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
   .faq details {
+    position: relative; overflow: hidden;
     background: var(--card); border: 1px solid var(--card-border);
     border-radius: 14px; padding: 18px 20px;
+    transition: border-color 0.18s ease;
   }
+  .faq details:hover { border-color: rgba(255, 214, 10, 0.3); }
+  .faq details::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 214, 10, 0.16), transparent 70%);
+    opacity: 0; transition: opacity 0.35s ease;
+  }
+  .faq details:hover::before { opacity: 1; }
+  .faq summary, .faq .a { position: relative; }
   .faq summary {
     cursor: pointer; font-weight: 700; font-size: 15px;
     list-style: none; display: flex; align-items: center; justify-content: space-between;
@@ -544,7 +554,7 @@
     })();
 
     (function () {
-      document.querySelectorAll('.feature').forEach(function (card) {
+      document.querySelectorAll('.feature, .faq details').forEach(function (card) {
         card.addEventListener('mousemove', function (e) {
           var rect = card.getBoundingClientRect();
           card.style.setProperty('--mx', (e.clientX - rect.left) + 'px');
