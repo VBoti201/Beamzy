@@ -6,6 +6,9 @@ on:
     branches: [main]
     paths-ignore:
       - 'updates/**'
+      - 'landing/**'
+      - 'relay/**'
+      - '**.md'
 
 permissions:
   contents: write
