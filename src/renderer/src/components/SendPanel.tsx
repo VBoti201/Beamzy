@@ -36,6 +36,7 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   const [files, setFiles] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
   const [sending, setSending] = useState(false)
+  const [folderWarning, setFolderWarning] = useState(false)
 
   useEffect(() => {
     setFiles([])
@@ -63,11 +64,19 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
     e.preventDefault()
     setDragOver(false)
     const paths: string[] = []
+    let skipped = false
     for (const file of Array.from(e.dataTransfer.files)) {
       const p = window.api.getPathForFile(file)
-      if (p) paths.push(p)
+      if (!p) continue
+      if (window.api.isDirectory(p)) {
+        skipped = true
+        continue
+      }
+      paths.push(p)
     }
     if (paths.length) setFiles((prev) => [...prev, ...paths])
+    setFolderWarning(skipped)
+    if (skipped) setTimeout(() => setFolderWarning(false), 3000)
   }, [])
 
   const pickFiles = async (): Promise<void> => {
@@ -161,6 +170,9 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
           Sending to {peer.name}
           {peer.transport === 'relay' ? ' (via relay)' : ''}
         </div>
+        {folderWarning && (
+          <div style={{ color: 'var(--danger)', fontSize: 12 }}>Folders can&apos;t be sent, only files</div>
+        )}
         <div
           style={{ marginTop: 8, maxWidth: '90%', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}
           onClick={(e) => e.stopPropagation()}
