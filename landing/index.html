@@ -43,6 +43,7 @@
 
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
     background: var(--bg);
@@ -54,7 +55,11 @@
   a { color: inherit; }
 
   /* nav */
-  .nav-shell { position: sticky; top: 16px; z-index: 50; padding: 0 16px; }
+  .nav-shell {
+    position: sticky; top: 16px; z-index: 50; padding: 0 16px;
+    transition: transform 0.35s ease, opacity 0.35s ease;
+  }
+  .nav-shell.hide { transform: translateY(-130%); opacity: 0; }
   nav {
     max-width: 1040px;
     margin: 0 auto;
@@ -381,11 +386,12 @@
     overflow: hidden;
     text-align: center;
     padding-top: 30px;
+    padding-bottom: 30px;
   }
   .watermark span {
-    font-size: clamp(120px, 24vw, 320px);
+    font-size: clamp(90px, 15vw, 220px);
     font-weight: 800;
-    letter-spacing: -6px;
+    letter-spacing: -0.03em;
     line-height: 1;
     background: linear-gradient(180deg, var(--accent), transparent);
     -webkit-background-clip: text;
@@ -394,8 +400,6 @@
     opacity: 0.18;
     white-space: nowrap;
   }
-
-  footer { padding: 10px 0 50px; text-align: center; color: var(--text-dim); font-size: 12.5px; }
 
   @media (max-width: 760px) {
     .hero h1 { font-size: 38px; }
@@ -409,7 +413,7 @@
 </style>
 </head>
 <body>
-  <div class="nav-shell">
+  <div class="nav-shell" id="navShell">
     <nav>
       <a class="brand" href="#top">
         <span class="mark"></span>
@@ -421,7 +425,7 @@
         <svg class="moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" fill="currentColor"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <a class="nav-cta" id="navCta" href="https://swiftsend-cfxh.onrender.com/downloads/mac">Download for Mac <span style="font-weight:400">→</span></a>
+      <span class="nav-cta">🇭🇺 Made in Hungary</span>
     </nav>
   </div>
 
@@ -610,7 +614,6 @@
     </section>
 
     <div class="watermark"><span>Beamzy</span></div>
-    <footer>Beamzy · free for Mac and Windows</footer>
   </div>
 
   <script>
@@ -624,6 +627,17 @@
         root.setAttribute('data-theme', next);
         try { localStorage.setItem('beamzy-theme', next); } catch (e) {}
       });
+    })();
+
+    (function () {
+      var navShell = document.getElementById('navShell');
+      var lastY = window.scrollY;
+      window.addEventListener('scroll', function () {
+        var y = window.scrollY;
+        if (y > lastY && y > 120) navShell.classList.add('hide');
+        else navShell.classList.remove('hide');
+        lastY = y;
+      }, { passive: true });
     })();
 
     (function () {
@@ -645,14 +659,6 @@
           document.getElementById('downloadCount').innerHTML = '<span class="dot"></span>' + label;
         })
         .catch(function () {});
-    })();
-
-    (function () {
-      var isWin = navigator.userAgent.indexOf('Windows') !== -1;
-      if (!isWin) return;
-      var navCta = document.getElementById('navCta');
-      navCta.href = 'https://swiftsend-cfxh.onrender.com/downloads/win';
-      navCta.childNodes[0].textContent = 'Download for Windows ';
     })();
   </script>
 </body>
