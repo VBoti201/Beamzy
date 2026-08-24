@@ -8,6 +8,11 @@ const statusLabel: Record<RelayStatus, string> = {
   error: 'Connection error'
 }
 
+function formatPairingCode(raw: string): string {
+  const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)
+  return clean.length > 3 ? `${clean.slice(0, 3)}-${clean.slice(3)}` : clean
+}
+
 const statusColor: Record<RelayStatus, string> = {
   disconnected: 'var(--text-dim)',
   connecting: 'var(--accent-2)',
@@ -88,7 +93,8 @@ export default function RelaySettings({
                   textAlign: 'center'
                 }}
                 value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                maxLength={7}
+                onChange={(e) => setCodeInput(formatPairingCode(e.target.value))}
               />
               {dirty ? (
                 <button className="btn" disabled={pairing || !codeInput.trim()} onClick={pairWithCode}>

@@ -94,7 +94,13 @@ export default function Dashboard({
           boxShadow: '0 4px 14px rgba(0,0,0,0.45)'
         }}
       >
-        <SidebarToggleIcon size={14} />
+        <motion.span
+          style={{ display: 'flex' }}
+          animate={{ rotate: sidebarCollapsed ? 180 : 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+        >
+          <SidebarToggleIcon size={14} />
+        </motion.span>
       </button>
 
       {!sidebarCollapsed && (
