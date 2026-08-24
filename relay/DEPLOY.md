@@ -93,17 +93,17 @@ sosem közvetlenül a nyílt internetről érhető el.
 ### B) Sima Node.js + systemd
 
 ```bash
-sudo mkdir -p /opt/swiftsend-relay
-sudo cp server.js package.json /opt/swiftsend-relay/
-cd /opt/swiftsend-relay
+sudo mkdir -p /opt/beamzy-relay
+sudo cp server.js package.json /opt/beamzy-relay/
+cd /opt/beamzy-relay
 sudo npm install --omit=dev
 
-sudo useradd --system --no-create-home swiftsend   # ha még nincs ilyen user
-sudo chown -R swiftsend:swiftsend /opt/swiftsend-relay
+sudo useradd --system --no-create-home beamzy   # ha még nincs ilyen user
+sudo chown -R beamzy:beamzy /opt/beamzy-relay
 
-sudo cp swiftsend-relay.service /etc/systemd/system/
+sudo cp beamzy-relay.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now swiftsend-relay
+sudo systemctl enable --now beamzy-relay
 ```
 
 Ezután itt is állítsd be a Caddy-t/nginx-et TLS-hez a `Caddyfile.example`

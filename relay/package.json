@@ -1,5 +1,5 @@
 {
-  "name": "swiftsend-relay",
+  "name": "beamzy-relay",
   "version": "0.1.0",
   "description": "Minimal relay server for Beamzy remote (off-LAN) transfers",
   "main": "server.js",

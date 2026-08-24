@@ -1,5 +1,5 @@
 services:
-  swiftsend-relay:
+  beamzy-relay:
     build: .
     restart: unless-stopped
     # Only exposed on localhost — Caddy (see Caddyfile.example) terminates
