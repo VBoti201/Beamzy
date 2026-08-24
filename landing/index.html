@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Beamzy — fast file transfer for Mac &amp; Windows</title>
+<meta name="description" content="Beamzy sends files between your Mac and Windows instantly over your local network, or anywhere with a pairing code." />
+<style>
+  :root {
+    --bg: #08080a;
+    --card: rgba(255, 255, 255, 0.04);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --text: #f2f2ee;
+    --text-dim: #98988f;
+    --accent: #ffd60a;
+    --accent-2: #ffb800;
+    --on-accent: #14100a;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(1200px 800px at 20% -10%, #1a1400 0%, transparent 60%),
+      radial-gradient(1000px 700px at 100% 0%, #120e00 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  header {
+    padding: 28px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    flex-shrink: 0;
+  }
+  .logo-word {
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.3px;
+  }
+
+  .hero {
+    padding: 64px 0 56px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 52px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    line-height: 1.05;
+    margin: 0 0 18px;
+    background: linear-gradient(135deg, #FFE566, var(--accent) 45%, var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero p {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 560px;
+    margin: 0 auto 36px;
+    line-height: 1.55;
+  }
+
+  .downloads {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 12px;
+    padding: 14px 26px;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn.primary {
+    color: var(--on-accent);
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  }
+  .btn.primary:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(255, 214, 10, 0.28); }
+  .btn.secondary {
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--card-border);
+  }
+  .btn.secondary:hover { background: rgba(255, 255, 255, 0.08); }
+  .btn svg { flex-shrink: 0; }
+
+  .version-note {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    padding: 20px 0 80px;
+  }
+  .feature {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+  .feature .icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(255, 214, 10, 0.12);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+  }
+  .feature h3 {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .feature p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  footer {
+    border-top: 1px solid var(--card-border);
+    padding: 24px 0 40px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+  }
+
+  @media (max-width: 700px) {
+    .hero h1 { font-size: 36px; }
+    .features { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo-mark"></div>
+      <div class="logo-word">Beamzy</div>
+    </header>
+
+    <section class="hero">
+      <h1>Send files between your<br />Mac and Windows, instantly</h1>
+      <p>Beamzy finds your other device on the same network automatically — no accounts, no cloud upload. Away from home? A short pairing code keeps it working anywhere.</p>
+
+      <div class="downloads">
+        <a class="btn primary" href="https://swiftsend-1.onrender.com/Beamzy-0.1.29-arm64.dmg">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16.5 3c.1 1.3-.4 2.5-1.1 3.4-.8.9-2 1.6-3.2 1.5-.1-1.3.5-2.6 1.2-3.4.8-.9 2.1-1.6 3.1-1.5zM20.8 17.2c-.5 1.2-.8 1.8-1.5 2.8-1 1.4-2.3 3.2-4 3.2-1.5 0-1.9-1-3.9-1s-2.5 1-4 1c-1.7 0-3-1.7-4-3-2.4-3.4-2.7-7.4-1.2-9.6 1.1-1.6 2.7-2.5 4.3-2.5 1.6 0 2.6 1.1 3.9 1.1s2-1.1 3.9-1.1c1.4 0 2.9.7 3.9 2-3.5 1.9-2.9 6.9.6 8.1z" fill="currentColor"/></svg>
+          Download for Mac
+        </a>
+        <a class="btn secondary" href="https://swiftsend-1.onrender.com/Beamzy%20Setup%200.1.29.exe">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 5.5L10.5 4.4V11.5H3V5.5ZM11.5 4.3L21 3V11.4H11.5V4.3ZM3 12.5H10.5V19.6L3 18.5V12.5ZM11.5 12.5H21V21L11.5 19.7V12.5Z" fill="currentColor"/></svg>
+          Download for Windows
+        </a>
+      </div>
+      <div class="version-note">v0.1.29 · free · updates itself</div>
+    </section>
+
+    <section class="features">
+      <div class="feature">
+        <div class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3C7 3 3 7 3 12s4 9 9 9 9-4 9-9-4-9-9-9Zm0 4a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z" fill="currentColor"/></svg>
+        </div>
+        <h3>Finds your other device</h3>
+        <p>On the same Wi-Fi or network, Beamzy sees your other computer automatically — no IP addresses, no setup.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M4 12l4-4M4 12l4 4M20 12l-4-4M20 12l-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Works away from home too</h3>
+        <p>Pair two devices once with a short code, and they can send files to each other over the internet as well.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4v12m0 0-4-4m4 4 4-4M5 18h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Drag, drop, done</h3>
+        <p>Files, images, videos — even whole folders. Drop them in and they're on the other machine in seconds.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2 4 6v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V6l-8-4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>You control access</h3>
+        <p>Choose exactly which folders are shared, and set browse/upload/download permission per device.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Nothing touches the cloud</h3>
+        <p>Files go straight between your own devices. No third-party storage, no accounts required.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 3v3m0 12v3m9-9h-3M6 12H3m14.5-6.5-2 2m-9 9-2 2m13 0-2-2m-9-9-2-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Stays up to date</h3>
+        <p>New versions install themselves in the background — nothing to download and reinstall by hand.</p>
+      </div>
+    </section>
+
+    <footer>
+      Beamzy — free for Mac and Windows
+    </footer>
+  </div>
+</body>
+</html>
