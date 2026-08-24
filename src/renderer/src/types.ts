@@ -77,6 +77,7 @@ export interface PairingRequest {
   deviceId: string
   name: string
   platform?: string
+  source: 'lan' | 'relay'
 }
 
 export interface HistoryEntry {

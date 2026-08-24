@@ -14,6 +14,7 @@ import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './update
 import { generateUniquePairingCode } from './constants'
 import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
 import { runSpeedTest } from './speedtest'
+import { isLanDeviceApproved, approveLanDevice, forgetLanDevice } from './lanTrust'
 
 function getFriendlySystemName(): string {
   if (process.platform === 'darwin') {
@@ -33,6 +34,24 @@ let mainWindow: BrowserWindow | null = null
 let discovery: Discovery | null = null
 let currentPeers: PeerInfo[] = []
 let closeServer: (() => void) | null = null
+let lastRawLanPeers: PeerInfo[] = []
+const pendingLanApprovals = new Set<string>()
+const rejectedLanDevices = new Set<string>()
+
+// LAN peers don't need a pairing code (mDNS just finds them), but a never-
+// approved deviceId still shouldn't be usable until the user explicitly
+// accepts it — otherwise anyone else on the same WiFi/router running
+// SwiftSend would show up with zero confirmation.
+function refreshLanPeers(): void {
+  for (const p of lastRawLanPeers) {
+    if (!isLanDeviceApproved(p.id) && !pendingLanApprovals.has(p.id) && !rejectedLanDevices.has(p.id)) {
+      pendingLanApprovals.add(p.id)
+      sendToWindow('relay:pairing-request', { requestId: p.id, deviceId: p.id, name: p.name, platform: p.platform, source: 'lan' })
+    }
+  }
+  currentPeers = lastRawLanPeers.filter((p) => isLanDeviceApproved(p.id))
+  sendToWindow('peers:update', currentPeers)
+}
 
 // mainWindow can be non-null but already destroyed during app quit (e.g.
 // relayClient.disconnect() firing from `before-quit` after the window is
@@ -69,7 +88,7 @@ const relayClient = new RelayClient({
   onStatus: (status) => sendToWindow('relay:status-update', status),
   onProgress: (p) => sendToWindow('transfer:progress', p),
   onHistory: (e) => recordHistory({ ...e, transport: 'relay' }),
-  onPairingRequest: (req) => sendToWindow('relay:pairing-request', req),
+  onPairingRequest: (req) => sendToWindow('relay:pairing-request', { ...req, source: 'relay' }),
   onHistoryDeleteRequest: (transferId) => applyHistoryDelete(transferId)
 })
 
@@ -147,8 +166,8 @@ async function bootstrap(): Promise<void> {
 
   const cfg = getConfig()
   discovery = new Discovery((peers) => {
-    currentPeers = peers
-    sendToWindow('peers:update', peers)
+    lastRawLanPeers = peers
+    refreshLanPeers()
   })
   discovery.start(cfg.deviceId, cfg.deviceName || getFriendlySystemName(), port)
 
@@ -240,6 +259,23 @@ ipcMain.handle('relay:pairing-approve', (_e, args: { requestId: string }) => rel
 ipcMain.handle('relay:pairing-reject', (_e, args: { requestId: string }) => relayClient.rejectPairing(args.requestId))
 
 ipcMain.handle('relay:kick-device', (_e, args: { deviceId: string }) => relayClient.kickDevice(args.deviceId))
+
+ipcMain.handle('lan:approve-device', (_e, args: { deviceId: string }) => {
+  approveLanDevice(args.deviceId)
+  pendingLanApprovals.delete(args.deviceId)
+  refreshLanPeers()
+})
+
+ipcMain.handle('lan:reject-device', (_e, args: { deviceId: string }) => {
+  pendingLanApprovals.delete(args.deviceId)
+  rejectedLanDevices.add(args.deviceId)
+  refreshLanPeers()
+})
+
+ipcMain.handle('lan:forget-device', (_e, args: { deviceId: string }) => {
+  forgetLanDevice(args.deviceId)
+  refreshLanPeers()
+})
 
 ipcMain.handle('relay:pair', (_e, args: { code: string }) => {
   const cfg = getConfig()

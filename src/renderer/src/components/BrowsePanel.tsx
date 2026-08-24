@@ -115,6 +115,8 @@ export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.02 }}
                 style={{
+                  position: 'relative',
+                  overflow: 'hidden',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
@@ -125,6 +127,35 @@ export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: 
                 whileHover={{ background: 'rgba(255,255,255,0.05)' }}
                 onClick={() => e.isDir && openEntry(e)}
               >
+                {pulling === e.path && (
+                  <AnimatePresence>
+                    <motion.div
+                      key="pull-streaks"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+                    >
+                      {Array.from({ length: 4 }).map((_, si) => (
+                        <motion.div
+                          key={si}
+                          initial={{ x: '140%', opacity: 0 }}
+                          animate={{ x: '-40%', opacity: [0, 1, 0] }}
+                          transition={{ duration: 0.6, repeat: Infinity, delay: si * 0.12, ease: 'easeIn' }}
+                          style={{
+                            position: 'absolute',
+                            top: `${20 + si * 18}%`,
+                            right: 0,
+                            width: '30%',
+                            height: 2,
+                            borderRadius: 2,
+                            background: 'linear-gradient(90deg, transparent, var(--accent), transparent)'
+                          }}
+                        />
+                      ))}
+                    </motion.div>
+                  </AnimatePresence>
+                )}
                 {e.isDir ? (
                   <motion.img
                     src={folderIconFor(e.name, !!e.isRoot)}

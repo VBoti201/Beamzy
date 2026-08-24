@@ -116,19 +116,18 @@ export default function PeerList({
                 )}
               </div>
             </div>
-            {p.transport === 'relay' && (
-              <button
-                className="btn secondary"
-                style={{ padding: '4px 6px', flexShrink: 0, marginLeft: 'auto' }}
-                title="Disconnect this device"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  window.api.relayKickDevice({ deviceId: p.id })
-                }}
-              >
-                <TrashIcon size={13} />
-              </button>
-            )}
+            <button
+              className="btn secondary"
+              style={{ padding: '4px 6px', flexShrink: 0, marginLeft: 'auto' }}
+              title="Disconnect this device"
+              onClick={(e) => {
+                e.stopPropagation()
+                if (p.transport === 'relay') window.api.relayKickDevice({ deviceId: p.id })
+                else window.api.lanForgetDevice({ deviceId: p.id })
+              }}
+            >
+              <TrashIcon size={13} />
+            </button>
           </motion.div>
         ))}
       </AnimatePresence>

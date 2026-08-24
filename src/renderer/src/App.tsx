@@ -88,8 +88,13 @@ export default function App(): JSX.Element {
   const respondToPairing = (approve: boolean): void => {
     const current = pairingQueue[0]
     if (!current) return
-    if (approve) window.api.relayApprovePairing({ requestId: current.requestId })
-    else window.api.relayRejectPairing({ requestId: current.requestId })
+    if (current.source === 'lan') {
+      if (approve) window.api.lanApproveDevice({ deviceId: current.deviceId })
+      else window.api.lanRejectDevice({ deviceId: current.deviceId })
+    } else {
+      if (approve) window.api.relayApprovePairing({ requestId: current.requestId })
+      else window.api.relayRejectPairing({ requestId: current.requestId })
+    }
     setPairingQueue((prev) => prev.slice(1))
   }
 
