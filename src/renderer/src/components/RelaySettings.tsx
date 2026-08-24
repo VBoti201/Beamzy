@@ -104,7 +104,7 @@ export default function RelaySettings({
               </button>
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-              To pair, type the other device&apos;s code over this one and hit Pair — no need to clear it first.
+              To pair, type the other device&apos;s code over this one and hit Pair. No need to clear it first.
             </div>
           </div>
 
