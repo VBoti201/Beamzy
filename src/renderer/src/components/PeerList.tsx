@@ -30,7 +30,7 @@ export default function PeerList({
             exit={{ opacity: 0 }}
             style={{ padding: 16, color: 'var(--text-dim)', fontSize: 13, textAlign: 'center' }}
           >
-            Searching the network…
+            Searching for devices…
             <br />
             Open SwiftSend on your other device too.
           </motion.div>

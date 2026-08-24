@@ -67,7 +67,7 @@ export default function Splash(): JSX.Element {
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 4 }}
       >
         <img src={spinner} alt="" style={{ width: 28, height: 28 }} />
-        <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>Discovering devices on the network…</div>
+        <div style={{ color: 'var(--text-dim)', fontSize: 13 }}>Discovering devices…</div>
       </motion.div>
     </motion.div>
   )
