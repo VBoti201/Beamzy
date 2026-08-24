@@ -32,7 +32,7 @@ Amikor mindkét géped ugyanazon a wifin/routeren van, az app a fenti közvetlen
 
 ## Forráskód és automatikus frissítés — két külön dolog
 
-A forráskód egy **privát** GitHub repóban van (`github.com/VBoti201/swiftsend`) — ez csak verziókövetésre/biztonsági mentésre való, nincs köze ahhoz, honnan töltik le a felhasználók az app-frissítéseket. Mivel privát repo release-eit nem tudja letölteni egy telepített app (token nélkül), az automatikus frissítés (lásd `src/main/updater.ts`) **nem GitHubról megy**, hanem egy általad üzemeltetett, sima statikus fájlszerverről (`electron-updater` "generic" provider, lásd a `package.json` `build.publish.url`-jét) — ugyanarra a VPS-re rakhatod, mint a relay-t.
+A forráskód egy **privát** GitHub repóban van (`github.com/VBoti201/beamzy`) — ez csak verziókövetésre/biztonsági mentésre való, nincs köze ahhoz, honnan töltik le a felhasználók az app-frissítéseket. Mivel privát repo release-eit nem tudja letölteni egy telepített app (token nélkül), az automatikus frissítés (lásd `src/main/updater.ts`) **nem GitHubról megy**, hanem egy általad üzemeltetett, sima statikus fájlszerverről (`electron-updater` "generic" provider, lásd a `package.json` `build.publish.url`-jét) — ugyanarra a VPS-re rakhatod, mint a relay-t.
 
 ## Fejlesztői indítás
 
