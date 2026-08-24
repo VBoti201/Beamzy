@@ -1,15 +1,21 @@
-version: 0.1.51
+version: 0.1.52
 files:
-  - url: Beamzy-0.1.51-arm64-mac.zip
+  - url: Beamzy-0.1.52-arm64-mac.zip
     sha512: >-
-      dvttjhHe9wcCVuuZJ/E1XqtFfJzUGNnD7ilMhotXowEJrCvOCtUBoW+nhGQihvbyT7GouhCBWeV407yNNxb3rw==
-    size: 94537112
-  - url: Beamzy-0.1.51-arm64.dmg
+      Z5iqpTK1641oQL7YOaY1zBECU/qbrq6Y4oNuQA41mKCybZy6YkKjmPJjut6zhD6EDeGCWjaNzM+i/FpqAFajUg==
+    size: 94537114
+  - url: Beamzy-0.1.52-arm64.dmg
     sha512: >-
-      1ris28aQqbm34RrvVvoUKSFTzNUGEyIb0TFCvsyKb7l7zdJ6jzX9qeWGF2Sgggm/aWcq40xgPm53zPomNtYUBQ==
-    size: 98018177
-path: Beamzy-0.1.51-arm64-mac.zip
+      po9eXTFAp4qY+r/VfFDg1edXi3QUKw46zUbaUQEf+u42HFu94CF9KPHEneTeFNr1TFxGLUbig4Rzop8bEdZc6w==
+    size: 98002190
+path: Beamzy-0.1.52-arm64-mac.zip
 sha512: >-
-  dvttjhHe9wcCVuuZJ/E1XqtFfJzUGNnD7ilMhotXowEJrCvOCtUBoW+nhGQihvbyT7GouhCBWeV407yNNxb3rw==
-releaseDate: '2026-08-24T22:55:14.863Z'
-releaseNotes: Re-add current update feed after trimming binary history
+  Z5iqpTK1641oQL7YOaY1zBECU/qbrq6Y4oNuQA41mKCybZy6YkKjmPJjut6zhD6EDeGCWjaNzM+i/FpqAFajUg==
+releaseDate: '2026-08-24T23:05:11.356Z'
+releaseNotes: |-
+  Add a script for the periodic update-history trim
+
+  Documents and automates the git-filter-repo dance used to shrink .git
+  back down (each release adds ~150-250MB of binaries under updates/
+  that never get cleaned up otherwise). The final force-push is left to
+  the user to run themselves — Claude Code won't run that unattended.
