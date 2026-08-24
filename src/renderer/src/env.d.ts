@@ -60,6 +60,7 @@ declare global {
       relayApprovePairing: (args: { requestId: string }) => Promise<void>
       relayRejectPairing: (args: { requestId: string }) => Promise<void>
       relayKickDevice: (args: { deviceId: string }) => Promise<void>
+      speedTestRun: () => Promise<{ downloadMbps: number; uploadMbps: number }>
       onPairingRequest: (cb: (req: import('./types').PairingRequest) => void) => () => void
       onAppReady: (cb: (data: unknown) => void) => () => void
       onPeersUpdate: (cb: (peers: import('./types').LanPeer[]) => void) => () => void

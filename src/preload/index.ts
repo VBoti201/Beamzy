@@ -31,6 +31,7 @@ const api = {
   relayApprovePairing: (args: unknown) => ipcRenderer.invoke('relay:pairing-approve', args),
   relayRejectPairing: (args: unknown) => ipcRenderer.invoke('relay:pairing-reject', args),
   relayKickDevice: (args: unknown) => ipcRenderer.invoke('relay:kick-device', args),
+  speedTestRun: () => ipcRenderer.invoke('speedtest:run'),
   onPairingRequest: (cb: (req: unknown) => void) => {
     const listener = (_e: unknown, req: unknown): void => cb(req)
     ipcRenderer.on('relay:pairing-request', listener)

@@ -13,6 +13,7 @@ import { RelayClient } from './relayClient'
 import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './updater'
 import { generateUniquePairingCode } from './constants'
 import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
+import { runSpeedTest } from './speedtest'
 
 function getFriendlySystemName(): string {
   if (process.platform === 'darwin') {
@@ -369,3 +370,5 @@ ipcMain.handle('history:remove', (_e, args: { id: string }) => {
 })
 
 ipcMain.handle('history:open', (_e, args: { filePath: string }) => shell.openPath(args.filePath))
+
+ipcMain.handle('speedtest:run', () => runSpeedTest())
