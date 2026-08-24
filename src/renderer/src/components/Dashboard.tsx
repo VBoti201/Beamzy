@@ -187,7 +187,7 @@ export default function Dashboard({
           </motion.div>
         )}
       </div>
-      <TransferTray transfers={transfers} />
+      <TransferTray transfers={transfers} onSelectPeer={setSelectedPeerId} />
       {settingsOpen && (
         <SettingsModal
           config={config}

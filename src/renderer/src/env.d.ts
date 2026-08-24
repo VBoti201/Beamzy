@@ -31,6 +31,7 @@ declare global {
         remoteRelPath: string
         destFolderId: string
       }) => Promise<boolean>
+      transferCancel: (args: { transferId: string }) => Promise<void>
       getPathForFile: (file: File) => string
       relaySetEnabled: (args: { enabled: boolean; url: string }) => Promise<import('./types').RelayConfig>
       relayRegenerateCode: () => Promise<import('./types').RelayConfig>
@@ -63,7 +64,6 @@ declare global {
       lanApproveDevice: (args: { deviceId: string }) => Promise<void>
       lanRejectDevice: (args: { deviceId: string }) => Promise<void>
       lanForgetDevice: (args: { deviceId: string }) => Promise<void>
-      speedTestRun: () => Promise<{ downloadMbps: number; uploadMbps: number }>
       onPairingRequest: (cb: (req: import('./types').PairingRequest) => void) => () => void
       onAppReady: (cb: (data: unknown) => void) => () => void
       onPeersUpdate: (cb: (peers: import('./types').LanPeer[]) => void) => () => void

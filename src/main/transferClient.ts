@@ -10,9 +10,42 @@ export interface TransferProgress {
   direction: 'push' | 'pull'
   done?: boolean
   error?: string
+  peerId?: string
 }
 
 type ProgressCb = (p: TransferProgress) => void
+
+interface ActivePull {
+  res: http.IncomingMessage
+  writeStream: fs.WriteStream
+  reject: (e: Error) => void
+  onProgress: ProgressCb
+  fileName: string
+  totalBytes: number
+}
+
+const activePulls = new Map<string, ActivePull>()
+
+// Only pulls (downloads) are cancellable — that's the direction a user can
+// actually be staring at and want to stop; a push already has the source
+// file safely on this device regardless.
+export function cancelLanTransfer(transferId: string): boolean {
+  const active = activePulls.get(transferId)
+  if (!active) return false
+  activePulls.delete(transferId)
+  active.res.destroy()
+  active.writeStream.destroy()
+  active.onProgress({
+    transferId,
+    fileName: active.fileName,
+    bytesTransferred: 0,
+    totalBytes: active.totalBytes,
+    direction: 'pull',
+    error: 'Cancelled'
+  })
+  active.reject(new Error('Cancelled'))
+  return true
+}
 
 // fs.mkdirSync(dir, { recursive: true }) throws EPERM (not EEXIST) on Windows
 // when `dir` is a drive root like "D:\" that already exists — only create it
@@ -91,6 +124,7 @@ export function pullFile(
         ensureDir(destDirPath)
         const destFile = path.join(destDirPath, fileName)
         const writeStream = fs.createWriteStream(destFile)
+        activePulls.set(transferId, { res, writeStream, reject, onProgress, fileName, totalBytes })
         let bytesTransferred = 0
         res.on('data', (chunk: Buffer) => {
           bytesTransferred += chunk.length
@@ -98,10 +132,13 @@ export function pullFile(
         })
         res.pipe(writeStream)
         writeStream.on('finish', () => {
+          activePulls.delete(transferId)
           onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction: 'pull', done: true })
           resolve({ fileName, destFile, size: totalBytes })
         })
         writeStream.on('error', (err) => {
+          if (!activePulls.has(transferId)) return // already handled by cancelLanTransfer
+          activePulls.delete(transferId)
           onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction: 'pull', error: err.message })
           reject(err)
         })

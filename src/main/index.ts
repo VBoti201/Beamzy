@@ -6,14 +6,13 @@ import { execSync } from 'child_process'
 import { randomUUID } from 'crypto'
 import { getConfig, updateConfig, SharedFolder, RelayConfig } from './config'
 import { Discovery, PeerInfo } from './discovery'
-import { startTransferServer } from './transferServer'
-import { pushFile, pullFile, fetchJson, notifyHistoryDelete } from './transferClient'
+import { startTransferServer, cancelIncomingTransfer } from './transferServer'
+import { pushFile, pullFile, fetchJson, notifyHistoryDelete, cancelLanTransfer } from './transferClient'
 import { getDrives } from './drives'
 import { RelayClient } from './relayClient'
 import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './updater'
 import { generateUniquePairingCode } from './constants'
 import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
-import { runSpeedTest } from './speedtest'
 import { isLanDeviceApproved, approveLanDevice, forgetLanDevice } from './lanTrust'
 
 function getFriendlySystemName(): string {
@@ -135,7 +134,9 @@ function createWindow(): void {
 
 async function bootstrap(): Promise<void> {
   const { port, close } = await startTransferServer({
-    onIncomingProgress: (e) =>
+    onIncomingProgress: (e) => {
+      const remote = e.remoteAddress.replace(/^::ffff:/, '')
+      const peer = currentPeers.find((p) => p.addresses?.includes(remote))
       sendToWindow('transfer:progress', {
         transferId: e.id,
         fileName: e.fileName,
@@ -144,8 +145,11 @@ async function bootstrap(): Promise<void> {
         // This is always data landing on this device (someone pushed to
         // us), regardless of the HTTP verb involved — show it as incoming.
         direction: 'pull',
-        done: e.totalBytes > 0 && e.bytesTransferred >= e.totalBytes
-      }),
+        done: e.totalBytes > 0 && e.bytesTransferred >= e.totalBytes,
+        error: e.error,
+        peerId: peer?.id || remote
+      })
+    },
     onIncomingDone: (e) => {
       const remote = e.remoteAddress.replace(/^::ffff:/, '')
       const peer = currentPeers.find((p) => p.addresses?.includes(remote))
@@ -333,20 +337,21 @@ ipcMain.handle('remote:targets', (_e, args: { host: string; port: number }) =>
 ipcMain.handle(
   'transfer:push',
   async (_e, args: { host: string; port: number; folderId: string; destRelPath: string; localFilePaths: string[] }) => {
+    const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
+    const peerId = peer?.id || args.host
     for (const filePath of args.localFilePaths) {
       const transferId = randomUUID()
       try {
         await pushFile(args.host, args.port, args.folderId, args.destRelPath || '', filePath, transferId, (p) =>
-          sendToWindow('transfer:progress', p)
+          sendToWindow('transfer:progress', { ...p, peerId })
         )
-        const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
         recordHistory({
           transferId,
           transport: 'lan',
           fileName: path.basename(filePath),
           filePath,
           direction: 'sent',
-          peerId: peer?.id || args.host,
+          peerId,
           peerName: peer?.name || args.host,
           size: fs.statSync(filePath).size
         })
@@ -357,7 +362,8 @@ ipcMain.handle(
           bytesTransferred: 0,
           totalBytes: 0,
           direction: 'push',
-          error: err instanceof Error ? err.message : 'Unknown error'
+          error: err instanceof Error ? err.message : 'Unknown error',
+          peerId
         })
       }
     }
@@ -372,17 +378,18 @@ ipcMain.handle(
     const destFolder = cfg.sharedFolders.find((f) => f.id === args.destFolderId)
     if (!destFolder) throw new Error('Unknown destination folder')
     const transferId = randomUUID()
-    const result = await pullFile(args.host, args.port, args.folderId, args.remoteRelPath, destFolder.path, transferId, (p) =>
-      sendToWindow('transfer:progress', p)
-    )
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
+    const peerId = peer?.id || args.host
+    const result = await pullFile(args.host, args.port, args.folderId, args.remoteRelPath, destFolder.path, transferId, (p) =>
+      sendToWindow('transfer:progress', { ...p, peerId })
+    )
     recordHistory({
       transferId,
       transport: 'lan',
       fileName: result.fileName,
       filePath: result.destFile,
       direction: 'received',
-      peerId: peer?.id || args.host,
+      peerId,
       peerName: peer?.name || args.host,
       size: result.size
     })
@@ -407,4 +414,10 @@ ipcMain.handle('history:remove', (_e, args: { id: string }) => {
 
 ipcMain.handle('history:open', (_e, args: { filePath: string }) => shell.openPath(args.filePath))
 
-ipcMain.handle('speedtest:run', () => runSpeedTest())
+ipcMain.handle('transfer:cancel', (_e, args: { transferId: string }) => {
+  // Try every transport's cancel — whichever one actually has this
+  // transferId active will do something, the rest are harmless no-ops.
+  cancelLanTransfer(args.transferId)
+  cancelIncomingTransfer(args.transferId)
+  relayClient.cancelPull(args.transferId)
+})

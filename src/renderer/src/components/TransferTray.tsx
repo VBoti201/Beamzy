@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { TransferProgress } from '../types'
 
 const AUTO_DISMISS_MS = 5000
+const STALL_TIMEOUT_MS = 20000
+const STALL_CHECK_INTERVAL_MS = 4000
 
 function formatBytes(n: number): string {
   if (!n) return '0 B'
@@ -16,11 +18,27 @@ function formatBytes(n: number): string {
   return `${v.toFixed(1)} ${units[i]}`
 }
 
-export default function TransferTray({ transfers }: { transfers: TransferProgress[] }): JSX.Element | null {
+function formatEta(seconds: number): string {
+  if (!isFinite(seconds) || seconds <= 0) return ''
+  if (seconds < 60) return `~${Math.round(seconds)}s left`
+  const mins = Math.floor(seconds / 60)
+  if (mins < 60) return `~${mins}m ${Math.round(seconds % 60)}s left`
+  const hours = Math.floor(mins / 60)
+  return `~${hours}h ${mins % 60}m left`
+}
+
+export default function TransferTray({
+  transfers,
+  onSelectPeer
+}: {
+  transfers: TransferProgress[]
+  onSelectPeer?: (peerId: string) => void
+}): JSX.Element | null {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [expandedErrors, setExpandedErrors] = useState<Set<string>>(new Set())
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+  const rateTrackers = useRef<Map<string, { lastBytes: number; lastTime: number; bps: number }>>(new Map())
 
   const scheduleDismiss = (id: string): void => {
     const existing = timers.current.get(id)
@@ -57,6 +75,23 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
     }
   }, [])
 
+  // If an active (incoming) transfer stops making progress for a while —
+  // the sender vanished, the connection died silently — cancel it so it
+  // surfaces as a real error instead of sitting at some % forever.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now()
+      for (const t of transfers) {
+        if (t.done || t.error) continue
+        const tracker = rateTrackers.current.get(t.transferId)
+        if (tracker && now - tracker.lastTime > STALL_TIMEOUT_MS) {
+          window.api.transferCancel({ transferId: t.transferId })
+        }
+      }
+    }, STALL_CHECK_INTERVAL_MS)
+    return () => clearInterval(interval)
+  }, [transfers])
+
   const toggleErrorDetail = (id: string): void => {
     setExpandedErrors((prev) => {
       const next = new Set(prev)
@@ -64,6 +99,29 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
       else next.add(id)
       return next
     })
+  }
+
+  const estimateEta = (t: TransferProgress): string => {
+    if (t.done || t.error || !t.totalBytes) return ''
+    const now = Date.now()
+    const prev = rateTrackers.current.get(t.transferId)
+    if (!prev) {
+      rateTrackers.current.set(t.transferId, { lastBytes: t.bytesTransferred, lastTime: now, bps: 0 })
+      return ''
+    }
+    const db = t.bytesTransferred - prev.lastBytes
+    // Only refresh lastTime when bytes actually moved — this is exactly
+    // the signal the stall watchdog below needs to notice a transfer that
+    // stopped making progress, which an unconditional timestamp bump
+    // (from unrelated re-renders) would otherwise mask.
+    if (db > 0) {
+      const dt = (now - prev.lastTime) / 1000
+      const instBps = dt > 0 ? db / dt : prev.bps
+      const bps = prev.bps ? prev.bps * 0.7 + instBps * 0.3 : instBps
+      rateTrackers.current.set(t.transferId, { lastBytes: t.bytesTransferred, lastTime: now, bps })
+      return bps > 0 ? formatEta((t.totalBytes - t.bytesTransferred) / bps) : ''
+    }
+    return prev.bps > 0 ? formatEta((t.totalBytes - t.bytesTransferred) / prev.bps) : ''
   }
 
   const visible = transfers.filter((t) => !dismissed.has(t.transferId))
@@ -78,6 +136,8 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
         {shown.map((t) => {
           const pct = t.totalBytes ? Math.min(100, (t.bytesTransferred / t.totalBytes) * 100) : 0
           const errorOpen = expandedErrors.has(t.transferId)
+          const eta = estimateEta(t)
+          const clickable = !!(onSelectPeer && t.peerId)
           return (
             <motion.div
               key={t.transferId}
@@ -87,7 +147,7 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
               exit={{ opacity: 0, x: 40, scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 340, damping: 24 }}
               className="card"
-              style={{ padding: 12 }}
+              style={{ padding: 12, cursor: clickable ? 'pointer' : undefined }}
               onMouseEnter={() => {
                 setHoveredId(t.transferId)
                 cancelDismiss(t.transferId)
@@ -96,6 +156,7 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
                 setHoveredId((cur) => (cur === t.transferId ? null : cur))
                 if (t.done || t.error) scheduleDismiss(t.transferId)
               }}
+              onClick={() => clickable && onSelectPeer!(t.peerId!)}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
                 <span
@@ -110,7 +171,10 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
                 </span>
                 {t.error ? (
                   <button
-                    onClick={() => toggleErrorDetail(t.transferId)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleErrorDetail(t.transferId)
+                    }}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -138,8 +202,32 @@ export default function TransferTray({ transfers }: { transfers: TransferProgres
                 />
               </div>
               {!t.error && !t.done && (
-                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-                  {formatBytes(t.bytesTransferred)} / {formatBytes(t.totalBytes)}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: 11,
+                    color: 'var(--text-dim)',
+                    marginTop: 4
+                  }}
+                >
+                  <span>
+                    {formatBytes(t.bytesTransferred)} / {formatBytes(t.totalBytes)}
+                    {eta ? ` · ${eta}` : ''}
+                  </span>
+                  {t.direction === 'pull' && (
+                    <button
+                      className="btn secondary"
+                      style={{ padding: '1px 8px', fontSize: 11, flexShrink: 0 }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        window.api.transferCancel({ transferId: t.transferId })
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
               )}
               {t.error && errorOpen && (

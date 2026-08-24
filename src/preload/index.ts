@@ -12,6 +12,7 @@ const api = {
   remoteTargets: (args: unknown) => ipcRenderer.invoke('remote:targets', args),
   pushFiles: (args: unknown) => ipcRenderer.invoke('transfer:push', args),
   pullFile: (args: unknown) => ipcRenderer.invoke('transfer:pull', args),
+  transferCancel: (args: unknown) => ipcRenderer.invoke('transfer:cancel', args),
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   relaySetEnabled: (args: unknown) => ipcRenderer.invoke('relay:set-enabled', args),
   relayRegenerateCode: () => ipcRenderer.invoke('relay:regenerate-code'),
@@ -34,7 +35,6 @@ const api = {
   lanApproveDevice: (args: unknown) => ipcRenderer.invoke('lan:approve-device', args),
   lanRejectDevice: (args: unknown) => ipcRenderer.invoke('lan:reject-device', args),
   lanForgetDevice: (args: unknown) => ipcRenderer.invoke('lan:forget-device', args),
-  speedTestRun: () => ipcRenderer.invoke('speedtest:run'),
   onPairingRequest: (cb: (req: unknown) => void) => {
     const listener = (_e: unknown, req: unknown): void => cb(req)
     ipcRenderer.on('relay:pairing-request', listener)

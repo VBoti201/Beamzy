@@ -18,6 +18,7 @@ export interface RelayTransferProgress {
   direction: 'push' | 'pull'
   done?: boolean
   error?: string
+  peerId?: string
 }
 
 interface RemoteEntryLike {
@@ -298,7 +299,7 @@ export class RelayClient {
         this.handleUploadEnd(payload)
         return
       case 'upload-error':
-        this.handleUploadError(payload)
+        this.handleUploadError(from, payload)
         return
       case 'download-request':
         this.respondDownload(from, payload)
@@ -393,7 +394,8 @@ export class RelayClient {
             bytesTransferred: 0,
             totalBytes,
             direction: 'pull',
-            error: streamErr.message
+            error: streamErr.message,
+            peerId: from
           })
         })
         this.incomingWrites.set(transferId, { stream, destFile, fileName, totalBytes, bytesTransferred: 0, fromPeerId: from })
@@ -446,7 +448,8 @@ export class RelayClient {
       // incomingWrites always means data landing on this device, whether
       // we're on the receiving end of someone else's push or of our own
       // pull — show it as incoming either way.
-      direction: 'pull'
+      direction: 'pull',
+      peerId: write.fromPeerId
     })
   }
 
@@ -461,7 +464,8 @@ export class RelayClient {
         bytesTransferred: write.totalBytes,
         totalBytes: write.totalBytes,
         direction: 'pull',
-        done: true
+        done: true,
+        peerId: write.fromPeerId
       })
       const pull = this.pendingPulls.get(transferId)
       if (pull) {
@@ -482,7 +486,7 @@ export class RelayClient {
     })
   }
 
-  private handleUploadError(payload: Record<string, unknown>): void {
+  private handleUploadError(from: string, payload: Record<string, unknown>): void {
     const transferId = payload.transferId as string
     const message = String(payload.message || 'Transfer failed')
     const write = this.incomingWrites.get(transferId)
@@ -503,7 +507,8 @@ export class RelayClient {
       bytesTransferred: write?.bytesTransferred || 0,
       totalBytes: write?.totalBytes || outgoingPush?.totalBytes || 0,
       direction: write || pull ? 'pull' : 'push',
-      error: message
+      error: message,
+      peerId: write?.fromPeerId || from
     })
   }
 
@@ -550,11 +555,11 @@ export class RelayClient {
         // streamFileTo always means this device is sending bytes out —
         // whether because it initiated a push or is serving someone else's
         // pull request — so this is always outgoing from here.
-        this.callbacks.onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction: 'push' })
+        this.callbacks.onProgress({ transferId, fileName, bytesTransferred, totalBytes, direction: 'push', peerId: to })
       })
       stream.on('end', () => {
         this.sendRelay(to, { kind: 'upload-end', transferId })
-        this.callbacks.onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction: 'push', done: true })
+        this.callbacks.onProgress({ transferId, fileName, bytesTransferred: totalBytes, totalBytes, direction: 'push', done: true, peerId: to })
         const toPeer = this.knownPeers.get(to)
         this.callbacks.onHistory({
           transferId,
@@ -610,7 +615,8 @@ export class RelayClient {
           bytesTransferred: 0,
           totalBytes: stat.size,
           direction: 'push',
-          error: err instanceof Error ? err.message : 'Send failed'
+          error: err instanceof Error ? err.message : 'Send failed',
+          peerId
         })
       }
     }
@@ -622,9 +628,23 @@ export class RelayClient {
       this.pendingPulls.set(transferId, { destDirPath, fileName: path.basename(remoteRelPath), resolve, reject })
       this.sendRelay(peerId, { kind: 'download-request', transferId, folderId, path: remoteRelPath })
       setTimeout(() => {
-        if (this.pendingPulls.has(transferId)) {
+        // Only fires if the peer never even acknowledged the request
+        // (never sent upload-start) — once incomingWrites exists, this
+        // pendingPulls entry is only cleared by a real end/error, so a
+        // long-but-active transfer isn't affected by this timeout.
+        if (this.pendingPulls.has(transferId) && !this.incomingWrites.has(transferId)) {
           this.pendingPulls.delete(transferId)
-          reject(new Error('Remote device did not respond in time'))
+          const message = 'Remote device did not respond in time'
+          this.callbacks.onProgress({
+            transferId,
+            fileName: path.basename(remoteRelPath),
+            bytesTransferred: 0,
+            totalBytes: 0,
+            direction: 'pull',
+            error: message,
+            peerId
+          })
+          reject(new Error(message))
         }
       }, 15000)
     })
@@ -649,5 +669,32 @@ export class RelayClient {
 
   notifyHistoryDelete(peerId: string, transferId: string): void {
     this.sendRelay(peerId, { kind: 'history-delete', transferId })
+  }
+
+  // Only the receiving side can cancel — that's the direction a user is
+  // actually watching and might want to stop; a push already has its
+  // source file safely on this device regardless.
+  cancelPull(transferId: string): boolean {
+    const write = this.incomingWrites.get(transferId)
+    const pull = this.pendingPulls.get(transferId)
+    if (!write && !pull) return false
+    if (write) {
+      write.stream.destroy()
+      this.incomingWrites.delete(transferId)
+      this.sendRelay(write.fromPeerId, { kind: 'upload-error', transferId, message: 'Cancelled by the other device' })
+    }
+    if (pull) {
+      pull.reject(new Error('Cancelled'))
+      this.pendingPulls.delete(transferId)
+    }
+    this.callbacks.onProgress({
+      transferId,
+      fileName: write?.fileName || pull?.fileName || 'file',
+      bytesTransferred: write?.bytesTransferred || 0,
+      totalBytes: write?.totalBytes || 0,
+      direction: 'pull',
+      error: 'Cancelled'
+    })
+    return true
   }
 }

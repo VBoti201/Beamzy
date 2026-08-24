@@ -9,6 +9,8 @@ export interface IncomingProgressEvent {
   fileName: string
   bytesTransferred: number
   totalBytes: number
+  remoteAddress: string
+  error?: string
 }
 
 export interface IncomingDoneEvent {
@@ -44,6 +46,37 @@ function safeResolve(root: string, relPath: string): string {
 // when it's actually missing.
 function ensureDir(dir: string): void {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+}
+
+interface ActiveIncoming {
+  req: http.IncomingMessage
+  writeStream: fs.WriteStream
+  onIncomingProgress?: (e: IncomingProgressEvent) => void
+  fileName: string
+  totalBytes: number
+  remoteAddress: string
+}
+
+const activeIncoming = new Map<string, ActiveIncoming>()
+
+// A device pushing to us is still something the receiving side should be
+// able to stop mid-transfer, same as a self-initiated pull.
+export function cancelIncomingTransfer(transferId: string): boolean {
+  const active = activeIncoming.get(transferId)
+  if (!active) return false
+  activeIncoming.delete(transferId)
+  active.req.destroy()
+  active.writeStream.destroy()
+  active.onIncomingProgress?.({
+    direction: 'up',
+    id: transferId,
+    fileName: active.fileName,
+    bytesTransferred: 0,
+    totalBytes: active.totalBytes,
+    remoteAddress: active.remoteAddress,
+    error: 'Cancelled'
+  })
+  return true
 }
 
 export function startTransferServer(events: ServerEvents = {}): Promise<{ port: number; close: () => void }> {
@@ -169,13 +202,25 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
       return
     }
     const writeStream = fs.createWriteStream(destFile)
+    const remoteAddress = req.socket.remoteAddress || ''
+    if (transferId) {
+      activeIncoming.set(transferId, { req, writeStream, onIncomingProgress: events.onIncomingProgress, fileName, totalBytes, remoteAddress })
+    }
     let bytesTransferred = 0
     req.on('data', (chunk: Buffer) => {
       bytesTransferred += chunk.length
-      events.onIncomingProgress?.({ direction: 'up', id: destFile, fileName, bytesTransferred, totalBytes })
+      events.onIncomingProgress?.({
+        direction: 'up',
+        id: transferId || destFile,
+        fileName,
+        bytesTransferred,
+        totalBytes,
+        remoteAddress
+      })
     })
     req.pipe(writeStream)
     writeStream.on('finish', () => {
+      activeIncoming.delete(transferId)
       res.writeHead(200)
       res.end('ok')
       events.onIncomingDone?.({
@@ -187,8 +232,12 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
       })
     })
     writeStream.on('error', (err) => {
-      res.writeHead(500)
-      res.end(err.message)
+      if (!activeIncoming.has(transferId)) return // already handled by cancelIncomingTransfer
+      activeIncoming.delete(transferId)
+      if (!res.headersSent) {
+        res.writeHead(500)
+        res.end(err.message)
+      }
     })
   }
 

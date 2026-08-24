@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import SharedFolderEditor from './SharedFolderEditor'
 import RelaySettings from './RelaySettings'
-import SpeedTest from './SpeedTest'
 import UpdateSection from './UpdateSection'
 import type { AppConfig, RelayStatus, UpdateStatus } from '../types'
 
@@ -68,10 +67,6 @@ export default function SettingsModal({
         <div style={{ height: 1, background: 'var(--card-border)', margin: '20px 0' }} />
 
         <RelaySettings relay={relay} relayStatus={relayStatus} onChange={setRelay} />
-
-        <div style={{ height: 1, background: 'var(--card-border)', margin: '20px 0' }} />
-
-        <SpeedTest />
 
         <div style={{ height: 1, background: 'var(--card-border)', margin: '20px 0' }} />
 

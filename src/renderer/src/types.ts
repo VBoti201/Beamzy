@@ -70,6 +70,7 @@ export interface TransferProgress {
   direction: 'push' | 'pull'
   done?: boolean
   error?: string
+  peerId?: string
 }
 
 export interface PairingRequest {
