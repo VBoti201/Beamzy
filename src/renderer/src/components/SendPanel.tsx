@@ -11,6 +11,21 @@ interface Target {
   name: string
 }
 
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|heic|heif|avif|tiff?)$/i
+const VIDEO_EXT = /\.(mp4|mov|webm|mkv|avi|m4v)$/i
+
+function isPreviewable(name: string): 'image' | 'video' | null {
+  if (IMAGE_EXT.test(name)) return 'image'
+  if (VIDEO_EXT.test(name)) return 'video'
+  return null
+}
+
+function toFileUrl(p: string): string {
+  let normalized = p.replace(/\\/g, '/')
+  if (!normalized.startsWith('/')) normalized = '/' + normalized
+  return 'file://' + encodeURI(normalized)
+}
+
 export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
   const [targets, setTargets] = useState<Target[]>([])
   const [targetsError, setTargetsError] = useState(false)
@@ -66,14 +81,19 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
 
   const send = async (): Promise<void> => {
     if (!files.length || !destFolderId) return
+    const toSend = files
     setSending(true)
+    // Clear right away rather than after the transfer resolves — this is
+    // what lets the chips play their "swept away" exit animation while the
+    // real transfer happens in the background/tray, instead of just
+    // sitting there inert until it's done.
+    setFiles([])
     if (peer.transport === 'relay') {
-      await window.api.relayPush({ peerId: peer.id, folderId: destFolderId, destRelPath, localFilePaths: files })
+      await window.api.relayPush({ peerId: peer.id, folderId: destFolderId, destRelPath, localFilePaths: toSend })
     } else {
-      await window.api.pushFiles({ host: peer.host!, port: peer.port!, folderId: destFolderId, destRelPath, localFilePaths: files })
+      await window.api.pushFiles({ host: peer.host!, port: peer.port!, folderId: destFolderId, destRelPath, localFilePaths: toSend })
     }
     setSending(false)
-    setFiles([])
   }
 
   return (
@@ -141,49 +161,90 @@ export default function SendPanel({ peer }: { peer: PeerInfo }): JSX.Element {
           Sending to {peer.name}
           {peer.transport === 'relay' ? ' (via relay)' : ''}
         </div>
-        {files.length > 0 && (
-          <div
-            style={{ marginTop: 8, maxWidth: '90%', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {files.map((f, i) => (
-              <div
-                key={i}
-                className="card"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '5px 6px 5px 10px',
-                  border: '1px solid var(--accent)',
-                  background: 'rgba(255,214,10,0.1)',
-                  maxWidth: 220
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--accent)',
-                    fontWeight: 600,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+        <div
+          style={{ marginTop: 8, maxWidth: '90%', display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <AnimatePresence>
+            {files.map((f, i) => {
+              const name = f.split(/[\\/]/).pop() || f
+              const kind = isPreviewable(name)
+              return (
+                <motion.div
+                  key={`${f}-${i}`}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{
+                    opacity: 0,
+                    x: 140,
+                    y: -90,
+                    scale: 0.5,
+                    rotate: 20,
+                    transition: { duration: 0.5, delay: i * 0.08, ease: 'easeIn' }
                   }}
+                  className="card"
+                  style={
+                    kind
+                      ? {
+                          position: 'relative',
+                          width: 72,
+                          height: 72,
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                          border: '1px solid var(--accent)'
+                        }
+                      : {
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '5px 6px 5px 10px',
+                          border: '1px solid var(--accent)',
+                          background: 'rgba(255,214,10,0.1)',
+                          maxWidth: 220
+                        }
+                  }
                 >
-                  {f.split(/[\\/]/).pop()}
-                </span>
-                <button
-                  className="btn secondary"
-                  style={{ padding: '2px 5px', flexShrink: 0 }}
-                  title="Remove"
-                  onClick={() => removeFile(i)}
-                >
-                  <CloseIcon size={10} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+                  {kind === 'image' ? (
+                    <img src={toFileUrl(f)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : kind === 'video' ? (
+                    <video
+                      src={toFileUrl(f)}
+                      muted
+                      preload="metadata"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--accent)',
+                        fontWeight: 600,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {name}
+                    </span>
+                  )}
+                  <button
+                    className="btn secondary"
+                    style={
+                      kind
+                        ? { position: 'absolute', top: 4, right: 4, padding: '2px 4px', minWidth: 0, background: 'rgba(0,0,0,0.6)' }
+                        : { padding: '2px 5px', flexShrink: 0 }
+                    }
+                    title="Remove"
+                    onClick={() => removeFile(i)}
+                  >
+                    <CloseIcon size={10} />
+                  </button>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+        </div>
       </div>
       <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1 }}>
