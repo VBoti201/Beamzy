@@ -20,7 +20,7 @@
     --on-accent: #14100a;
     --highlight-bg: rgba(255, 214, 10, 0.2);
     --step-bg: rgba(255, 255, 255, 0.05);
-    --faq-bg: rgba(0, 0, 0, 0.22);
+    --faq-bg: rgba(0, 0, 0, 0.42);
     --radius: 16px;
     --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   }
@@ -258,8 +258,8 @@
     animation: featureAmbient 5s ease-in-out infinite;
   }
   @keyframes featureAmbient {
-    0%, 100% { opacity: 0.35; }
-    50% { opacity: 0.9; }
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.65; }
   }
   .feature:nth-child(1)::after { background-position: 10% 10%; animation-delay: 0s; animation-duration: 5.2s; }
   .feature:nth-child(2)::after { background: radial-gradient(190px circle at 50% 12%, rgba(255, 214, 10, 0.14), transparent 70%); animation-delay: 0.9s; animation-duration: 4.6s; }
@@ -277,7 +277,7 @@
 
   /* steps */
   .steps-card {
-    background: radial-gradient(650px 320px at 10% -10%, rgba(255, 214, 10, 0.16), transparent 62%), var(--card);
+    background: radial-gradient(650px 320px at 10% -10%, rgba(255, 214, 10, 0.16), transparent 62%), var(--faq-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     color: var(--text);
