@@ -200,7 +200,11 @@
     background: rgba(255, 214, 10, 0.1); border: 1px solid rgba(255, 214, 10, 0.35);
     display: flex; align-items: center; gap: 8px;
   }
-  .m-peer .ic { width: 16px; height: 16px; border-radius: 4px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); flex-shrink: 0; }
+  .m-peer .ic {
+    width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: flex; align-items: center; justify-content: center;
+  }
   .m-peer span { font-size: 12.5px; font-weight: 700; color: var(--accent-2); }
   .m-activity { padding: 4px 14px; font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.4px; }
   .m-foot {
@@ -460,7 +464,12 @@
               <div class="name">Beamzy MacBook Air</div>
               <div class="sub">This device</div>
             </div>
-            <div class="m-peer"><span class="ic"></span><span>BeamzyPC</span></div>
+            <div class="m-peer">
+              <span class="ic">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none"><path d="M3 5.5L10.5 4.4V11.5H3V5.5ZM11.5 4.3L21 3V11.4H11.5V4.3ZM3 12.5H10.5V19.6L3 18.5V12.5ZM11.5 12.5H21V21L11.5 19.7V12.5Z" fill="#14100a"/></svg>
+              </span>
+              <span>BeamzyPC</span>
+            </div>
             <div class="m-activity">Recent activity</div>
             <div class="m-foot">
               <div class="m-storage">
