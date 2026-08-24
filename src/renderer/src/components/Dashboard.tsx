@@ -72,9 +72,18 @@ export default function Dashboard({
         <div
           className="btn secondary"
           style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', cursor: 'default' }}
+          title={diskSpace ? `${formatBytes(diskSpace.total - diskSpace.free)} used of ${formatBytes(diskSpace.total)}` : undefined}
         >
           <DiskIcon size={16} />
-          <span style={{ fontSize: 13 }}>{diskSpace ? `${formatBytes(diskSpace.free)} free` : '…'}</span>
+          <div style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+            <div
+              className="disk-wave"
+              style={{ width: diskSpace && diskSpace.total ? `${Math.min(100, ((diskSpace.total - diskSpace.free) / diskSpace.total) * 100)}%` : '0%' }}
+            />
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--text-dim)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+            {diskSpace ? `${formatBytes(diskSpace.free)} free` : '…'}
+          </span>
         </div>
         <button className="btn secondary" style={{ padding: '8px 10px', flexShrink: 0 }} onClick={() => setSettingsOpen(true)}>
           <GearIcon size={16} />
