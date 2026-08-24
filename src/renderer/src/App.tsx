@@ -31,7 +31,10 @@ export default function App(): JSX.Element {
   const [dismissedUpdateVersion, setDismissedUpdateVersion] = useState<string | null>(null)
 
   useEffect(() => {
-    document.documentElement.dataset.theme = config?.theme || 'dark'
+    // main.tsx already applies the persisted theme before the first paint
+    // (splash included) via a synchronous IPC call — don't stomp that with
+    // a 'dark' fallback here just because config hasn't loaded yet.
+    if (config) document.documentElement.dataset.theme = config.theme
   }, [config?.theme])
 
   useEffect(() => {
