@@ -51,10 +51,17 @@ jobs:
         run: |
           mkdir -p updates
           node scripts/inject-release-notes.js dist/latest-mac.yml "$(git log -1 --pretty=%B)"
-          rm -f updates/*-mac.zip updates/latest-mac.yml updates/*-mac.zip.blockmap
+          # The .dmg isn't needed by electron-updater itself (it only ever
+          # fetches the .zip via latest-mac.yml's `path:`), but latest-mac.yml
+          # also lists the .dmg as one of `files:` — that's what the landing
+          # page's "Download for Mac" button resolves and redirects to, so it
+          # has to actually be here too or that link 404s.
+          rm -f updates/*-mac.zip updates/latest-mac.yml updates/*-mac.zip.blockmap updates/*.dmg updates/*.dmg.blockmap
           cp dist/*-mac.zip updates/
+          cp dist/*.dmg updates/
           cp dist/latest-mac.yml updates/
           cp dist/*-mac.zip.blockmap updates/
+          cp dist/*.dmg.blockmap updates/
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add updates/
