@@ -520,7 +520,7 @@ export class RelayClient {
     const relPath = (payload.path as string) || ''
     const cfg = getConfig()
     const folder = cfg.sharedFolders.find((f) => f.id === folderId)
-    if (!folder || !effectivePermission(cfg, from, folderId)?.allowBrowse) {
+    if (!folder || !effectivePermission(cfg, from, folderId)?.allowDownload) {
       this.sendRelay(from, { kind: 'upload-error', transferId, message: 'Folder not shared' })
       return
     }

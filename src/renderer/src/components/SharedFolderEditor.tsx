@@ -22,7 +22,14 @@ export default function SharedFolderEditor({
     const picked = await window.api.chooseFolder()
     if (!picked) return
     const name = picked.split(/[\\/]/).pop() || picked
-    const folder: SharedFolder = { id: uuidv4(), name, path: picked, allowBrowse: true, allowUpload: true }
+    const folder: SharedFolder = {
+      id: uuidv4(),
+      name,
+      path: picked,
+      allowBrowse: true,
+      allowUpload: true,
+      allowDownload: true
+    }
     onChange([...folders, folder])
   }
 
@@ -32,7 +39,8 @@ export default function SharedFolderEditor({
       name: drive.name,
       path: drive.path,
       allowBrowse: true,
-      allowUpload: true
+      allowUpload: true,
+      allowDownload: true
     }
     onChange([...folders, folder])
   }
@@ -94,6 +102,14 @@ export default function SharedFolderEditor({
                   onChange={(e) => update(f.id, { allowUpload: e.target.checked })}
                 />
                 Accepts uploads
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)' }}>
+                <input
+                  type="checkbox"
+                  checked={f.allowDownload !== false}
+                  onChange={(e) => update(f.id, { allowDownload: e.target.checked })}
+                />
+                Downloadable
               </label>
               <button className="btn secondary" style={{ padding: '6px 10px' }} onClick={() => remove(f.id)}>
                 <CloseIcon size={12} />

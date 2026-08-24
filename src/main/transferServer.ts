@@ -55,10 +55,12 @@ function permissionFor(
   cfg: ReturnType<typeof getConfig>,
   requesterId: string,
   folderId: string
-): { allowBrowse: boolean; allowUpload: boolean } | null {
+): { allowBrowse: boolean; allowUpload: boolean; allowDownload: boolean } | null {
   if (!requesterId) {
     const folder = cfg.sharedFolders.find((f) => f.id === folderId)
-    return folder ? { allowBrowse: folder.allowBrowse, allowUpload: folder.allowUpload } : null
+    return folder
+      ? { allowBrowse: folder.allowBrowse, allowUpload: folder.allowUpload, allowDownload: folder.allowDownload !== false }
+      : null
   }
   return effectivePermission(cfg, requesterId, folderId)
 }
@@ -170,7 +172,7 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     const requesterId = url.searchParams.get('requesterId') || ''
     const cfg = getConfig()
     const folder = cfg.sharedFolders.find((f) => f.id === folderId)
-    if (!folder || !permissionFor(cfg, requesterId, folderId || '')?.allowBrowse) {
+    if (!folder || !permissionFor(cfg, requesterId, folderId || '')?.allowDownload) {
       res.writeHead(403)
       res.end('forbidden')
       return

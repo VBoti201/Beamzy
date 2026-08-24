@@ -4,6 +4,7 @@ export interface SharedFolder {
   path: string
   allowBrowse: boolean
   allowUpload: boolean
+  allowDownload: boolean
 }
 
 export interface RelayConfig {
@@ -78,6 +79,7 @@ export interface DevicePermissionView {
   folderName: string
   allowBrowse: boolean
   allowUpload: boolean
+  allowDownload: boolean
   isCustom: boolean
 }
 

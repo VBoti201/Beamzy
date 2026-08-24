@@ -8,6 +8,7 @@ export interface SharedFolder {
   path: string
   allowBrowse: boolean
   allowUpload: boolean
+  allowDownload: boolean
 }
 
 export interface RelayConfig {
@@ -25,6 +26,7 @@ export interface DevicePermission {
   folderId: string
   allowBrowse: boolean
   allowUpload: boolean
+  allowDownload: boolean
 }
 
 export interface AppConfig {
@@ -77,19 +79,29 @@ export function effectivePermission(
   cfg: AppConfig,
   deviceId: string,
   folderId: string
-): { allowBrowse: boolean; allowUpload: boolean } | null {
+): { allowBrowse: boolean; allowUpload: boolean; allowDownload: boolean } | null {
   const folder = cfg.sharedFolders.find((f) => f.id === folderId)
   if (!folder) return null
   const override = cfg.devicePermissions.find((p) => p.deviceId === deviceId && p.folderId === folderId)
+  // allowDownload was added after allowBrowse/allowUpload — folders and
+  // overrides persisted before that (electron-store on disk) won't have it
+  // set, so treat "missing" as "on" rather than silently locking out
+  // downloads that used to just work.
   return override
-    ? { allowBrowse: override.allowBrowse, allowUpload: override.allowUpload }
-    : { allowBrowse: folder.allowBrowse, allowUpload: folder.allowUpload }
+    ? { allowBrowse: override.allowBrowse, allowUpload: override.allowUpload, allowDownload: override.allowDownload !== false }
+    : { allowBrowse: folder.allowBrowse, allowUpload: folder.allowUpload, allowDownload: folder.allowDownload !== false }
 }
 
-export function setDevicePermission(deviceId: string, folderId: string, allowBrowse: boolean, allowUpload: boolean): AppConfig {
+export function setDevicePermission(
+  deviceId: string,
+  folderId: string,
+  allowBrowse: boolean,
+  allowUpload: boolean,
+  allowDownload: boolean
+): AppConfig {
   const cfg = getConfig()
   const rest = cfg.devicePermissions.filter((p) => !(p.deviceId === deviceId && p.folderId === folderId))
-  return updateConfig({ devicePermissions: [...rest, { deviceId, folderId, allowBrowse, allowUpload }] })
+  return updateConfig({ devicePermissions: [...rest, { deviceId, folderId, allowBrowse, allowUpload, allowDownload }] })
 }
 
 export function clearDevicePermission(deviceId: string, folderId: string): AppConfig {

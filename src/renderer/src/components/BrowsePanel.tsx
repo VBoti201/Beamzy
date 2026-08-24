@@ -6,6 +6,18 @@ import { FileIcon } from '../icons'
 import FolderDropdown from './FolderDropdown'
 import receiveIcon from '../assets/btn-receive.svg'
 
+function formatBytes(n: number): string {
+  if (!n) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB']
+  let i = 0
+  let v = n
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024
+    i++
+  }
+  return `${v.toFixed(1)} ${units[i]}`
+}
+
 export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: AppConfig }): JSX.Element {
   const [folderId, setFolderId] = useState<string | null>(null)
   const [relPath, setRelPath] = useState('')
@@ -169,6 +181,9 @@ export default function BrowsePanel({ peer, config }: { peer: PeerInfo; config: 
                   <FileIcon size={18} />
                 )}
                 <span style={{ flex: 1 }}>{e.name}</span>
+                {!e.isDir && (
+                  <span style={{ fontSize: 12, color: 'var(--text-dim)', flexShrink: 0 }}>{formatBytes(e.size)}</span>
+                )}
                 {!e.isDir && (
                   <button
                     className="btn secondary"

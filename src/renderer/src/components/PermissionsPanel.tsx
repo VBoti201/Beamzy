@@ -16,8 +16,13 @@ export default function PermissionsPanel({ deviceId }: { deviceId: string }): JS
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId])
 
-  const update = async (folderId: string, allowBrowse: boolean, allowUpload: boolean): Promise<void> => {
-    await window.api.permissionsSet({ deviceId, folderId, allowBrowse, allowUpload })
+  const update = async (
+    folderId: string,
+    allowBrowse: boolean,
+    allowUpload: boolean,
+    allowDownload: boolean
+  ): Promise<void> => {
+    await window.api.permissionsSet({ deviceId, folderId, allowBrowse, allowUpload, allowDownload })
     load()
   }
 
@@ -64,15 +69,23 @@ export default function PermissionsPanel({ deviceId }: { deviceId: string }): JS
               <input
                 type="checkbox"
                 checked={e.allowBrowse}
-                onChange={(ev) => update(e.folderId, ev.target.checked, e.allowUpload)}
+                onChange={(ev) => update(e.folderId, ev.target.checked, e.allowUpload, e.allowDownload)}
               />
               Browse
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)', flexShrink: 0 }}>
               <input
                 type="checkbox"
+                checked={e.allowDownload}
+                onChange={(ev) => update(e.folderId, e.allowBrowse, e.allowUpload, ev.target.checked)}
+              />
+              Download
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-dim)', flexShrink: 0 }}>
+              <input
+                type="checkbox"
                 checked={e.allowUpload}
-                onChange={(ev) => update(e.folderId, e.allowBrowse, ev.target.checked)}
+                onChange={(ev) => update(e.folderId, e.allowBrowse, ev.target.checked, e.allowDownload)}
               />
               Upload
             </label>

@@ -22,7 +22,7 @@ export default function Onboarding({ onDone }: { onDone: (cfg: AppConfig) => voi
         setFolders((prev) =>
           prev.length > 0
             ? prev
-            : [{ id: uuidv4(), name: primary.name, path: primary.path, allowBrowse: true, allowUpload: true }]
+            : [{ id: uuidv4(), name: primary.name, path: primary.path, allowBrowse: true, allowUpload: true, allowDownload: true }]
         )
       }
     })

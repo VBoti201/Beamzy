@@ -33,7 +33,13 @@ declare global {
       }) => Promise<boolean>
       transferCancel: (args: { transferId: string }) => Promise<void>
       permissionsGet: (args: { deviceId: string }) => Promise<import('./types').DevicePermissionView[]>
-      permissionsSet: (args: { deviceId: string; folderId: string; allowBrowse: boolean; allowUpload: boolean }) => Promise<void>
+      permissionsSet: (args: {
+        deviceId: string
+        folderId: string
+        allowBrowse: boolean
+        allowUpload: boolean
+        allowDownload: boolean
+      }) => Promise<void>
       permissionsClear: (args: { deviceId: string; folderId: string }) => Promise<void>
       getPathForFile: (file: File) => string
       relaySetEnabled: (args: { enabled: boolean; url: string }) => Promise<import('./types').RelayConfig>

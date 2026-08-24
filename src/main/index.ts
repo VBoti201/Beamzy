@@ -461,14 +461,18 @@ ipcMain.handle('permissions:get', (_e, args: { deviceId: string }) => {
       folderName: f.name,
       allowBrowse: perm.allowBrowse,
       allowUpload: perm.allowUpload,
+      allowDownload: perm.allowDownload,
       isCustom: !!override
     }
   })
 })
 
-ipcMain.handle('permissions:set', (_e, args: { deviceId: string; folderId: string; allowBrowse: boolean; allowUpload: boolean }) => {
-  setDevicePermission(args.deviceId, args.folderId, args.allowBrowse, args.allowUpload)
-})
+ipcMain.handle(
+  'permissions:set',
+  (_e, args: { deviceId: string; folderId: string; allowBrowse: boolean; allowUpload: boolean; allowDownload: boolean }) => {
+    setDevicePermission(args.deviceId, args.folderId, args.allowBrowse, args.allowUpload, args.allowDownload)
+  }
+)
 
 ipcMain.handle('permissions:clear', (_e, args: { deviceId: string; folderId: string }) => {
   clearDevicePermission(args.deviceId, args.folderId)

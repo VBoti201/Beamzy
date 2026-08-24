@@ -78,7 +78,7 @@ export default function Dashboard({
         }}
         style={{
           position: 'absolute',
-          top: 40,
+          top: 48,
           left: (sidebarCollapsed ? RAIL_WIDTH : SIDEBAR_WIDTH) - TOGGLE_SIZE / 2,
           width: TOGGLE_SIZE,
           height: TOGGLE_SIZE,
@@ -141,9 +141,9 @@ export default function Dashboard({
                 style={{
                   position: 'absolute',
                   // Clears both the native window controls and the
-                  // floating sidebar-toggle button (top: 34, ~26px tall)
+                  // floating sidebar-toggle button (top: 48, ~26px tall)
                   // that floats above this panel — it was overlapping both.
-                  top: 56,
+                  top: 78,
                   left: RAIL_WIDTH,
                   bottom: 10,
                   width: SIDEBAR_WIDTH,
