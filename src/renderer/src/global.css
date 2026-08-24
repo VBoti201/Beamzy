@@ -20,6 +20,7 @@
   --glow-2: #120e00;
   --modal-backdrop-strong: rgba(0, 0, 0, 0.5);
   --modal-backdrop: rgba(0, 0, 0, 0.35);
+  --platform-badge: linear-gradient(135deg, #2a2a2e, #070708);
 }
 
 :root[data-theme='light'] {
@@ -41,6 +42,7 @@
   --glow-2: #fff3d6;
   --modal-backdrop-strong: rgba(60, 48, 20, 0.22);
   --modal-backdrop: rgba(60, 48, 20, 0.15);
+  --platform-badge: linear-gradient(135deg, #6b5940, #4a3d28);
 }
 
 * {

@@ -89,7 +89,7 @@ export default function PeerList({
                   width: 26,
                   height: 26,
                   borderRadius: 8,
-                  background: 'linear-gradient(135deg, #2a2a2e, #070708)',
+                  background: 'var(--platform-badge)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

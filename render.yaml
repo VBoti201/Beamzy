@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: swiftsend-relay
+    name: beamzy-relay
     runtime: docker
     plan: free
     rootDir: relay

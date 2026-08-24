@@ -56,7 +56,7 @@ export default function PairingRequestModal({
             width: 56,
             height: 56,
             borderRadius: 16,
-            background: 'linear-gradient(135deg, #2a2a2e, #070708)',
+            background: 'var(--platform-badge)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
