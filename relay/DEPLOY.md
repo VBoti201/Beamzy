@@ -1,96 +1,52 @@
-# Beamzy relay — telepítés VPS-re
+# Beamzy relay — deploying to a VPS
 
-Ez a mappa egy önálló, pár tíz soros Node.js WebSocket szerver. Egyetlen dolga:
-összeköti egymással a Beamzy-es eszközpárokat, ha épp nincsenek ugyanazon
-a helyi hálózaton. Nem tárol fájlt, nem ismer felhasználói fiókot — csak
-addig tartja nyitva a kapcsolatot, amíg egy eszközpár be nem fejezi az
-átvitelt, utána semmi nyom nem marad utána a szerveren.
+This folder is a standalone, few-dozen-line Node.js WebSocket server. It has one job: connect Beamzy device pairs to each other when they aren't on the same local network. It doesn't store files, doesn't know about user accounts — it just keeps the connection open until a device pair finishes a transfer, and no trace is left on the server afterward.
 
-**Ezt egyszer, központilag kell telepítened** (ha publikálod az appot, akkor
-a te szervered, nem az egyes felhasználóké) — egyetlen példány párosító
-kódonként elkülönített "szobákban" korlátlan sok eszközpárt tud egyszerre
-kiszolgálni, tehát nem kell (és nem is kellene) minden felhasználó-párnak
-saját relay-t futtatnia.
+**You deploy this once, centrally** (if you're publishing the app, that means your server, not each user's) — a single instance can serve an unlimited number of device pairs at once, each isolated in its own pairing-code "room", so no user pair needs (or should need) to run their own relay.
 
-## Mekkora gép kell hozzá?
+## How big a machine do I need?
 
-A relay **I/O-korlátos, nem CPU-korlátos** — a beérkező adatot (kis JSON
-csomagokban, base64-kódolt fájldarabokban) rögtön továbbküldi, gyakorlatilag
-nem számol semmit. Ebből következik:
+The relay is **I/O-bound, not CPU-bound** — it forwards incoming data (small JSON packets, base64-encoded file chunks) right away, and effectively does no computation. So:
 
-| Erőforrás | Ajánlott minimum | Miért elég ennyi |
+| Resource | Recommended minimum | Why this is enough |
 |---|---|---|
-| CPU | 1 megosztott vCPU | Nincs titkosítás, tömörítés vagy fájlfeldolgozás a relayben magában (a TLS-t a Caddy intézi, az is könnyű). |
-| RAM | 512 MB – 1 GB | Eszközönként/kapcsolatonként pár tíz KB állapotot tart csak memóriában; egy 256 KB-os fájldarab is csak pillanatokra van a memóriában, amíg továbbküldi. |
-| Tárhely | 5–10 GB | A rendszer + Node/Docker foglalja a helyet, a relay maga semmit nem ír lemezre. |
-| Sávszélesség | **ez számít igazán** | Minden átvitt bájt kétszer megy át a szerveren (be, majd ki), base64 miatt kb. +33% overhead-del. Ha sokat és nagy fájlokat küldesz távolról, olyan csomagot válassz, ahol a havi forgalom vagy a sávszélesség nem szűk keresztmetszet (sok szolgáltatónál "unmetered" vagy nagyon nagyvonalú a keret a legkisebb csomagban is). |
+| CPU | 1 shared vCPU | No encryption, compression, or file processing happens in the relay itself (TLS is handled by Caddy, which is light too). |
+| RAM | 512 MB – 1 GB | Only a few dozen KB of state per device/connection is kept in memory; even a 256 KB file chunk only sits in memory for a moment while it's forwarded. |
+| Storage | 5–10 GB | The OS + Node/Docker take up the space — the relay itself never writes anything to disk. |
+| Bandwidth | **this is what actually matters** | Every transferred byte passes through the server twice (in, then out), with about +33% overhead from base64. If you send a lot of large files remotely, pick a plan where monthly traffic or bandwidth isn't the bottleneck (many providers offer "unmetered" or a very generous allowance even on their smallest tier). |
 
-Gyakorlatban: a legkisebb, kb. 4-6 USD/hó körüli VPS csomagok (pl. Hetzner
-CX22, DigitalOcean/Vultr/Linode legkisebb droplet-jei) bőven elegek egy
-maroknyi eszközpár (pl. a saját két géped) alkalmankénti fájlküldéséhez.
-Csak akkor érdemes feljebb menni, ha (a) rendszeresen nagyon nagy fájlokat
-(sok GB-os videó stb.) tolsz távolról, vagy (b) az appot publikálod és sok
-felhasználó egyszerre aktívan használja a távoli átvitelt — mindkét esetben
-a sávszélesség/forgalmi keret lesz a limitáló tényező előbb, mint a CPU/RAM.
-Mivel minden eszközpár teljesen elkülönített "szobában" van, a szerver
-terhelése lényegében lineárisan nő az egyidejűleg *aktívan átvitelt végző*
-párok számával, nem a regisztrált felhasználók számával — egy nagyobb
-publikált felhasználói bázisnál érdemes lehet a sávszélességet és a RAM-ot
-menet közben, a tényleges forgalom alapján felskálázni.
+In practice: the cheapest VPS tiers, around $4-6/month (e.g. Hetzner CX22, or the smallest DigitalOcean/Vultr/Linode droplets), are plenty for occasional file transfers between a handful of device pairs (e.g. your own two machines). It's only worth going bigger if (a) you regularly push very large files (multi-GB videos etc.) remotely, or (b) you publish the app and many users are actively using remote transfer at once — in both cases, bandwidth/traffic allowance becomes the limiting factor before CPU/RAM does. Since every device pair is fully isolated in its own "room", the server's load scales essentially linearly with the number of pairs *actively transferring at the same time*, not with the number of registered users — at a larger published user base, it may be worth scaling bandwidth and RAM up over time, based on actual traffic.
 
-## Mennyire biztonságos ezt kitenni az internetre?
+## How safe is it to expose this to the internet?
 
-**A relay szándékosan minimális támadási felületű:**
+**The relay is deliberately built with a minimal attack surface:**
 
-- **Nincs fájltárolás** — a relay memóriában, azonnal továbbítja az adatot, sosem írja lemezre. Ha valaki fel is töri a VPS-t, korábbi átviteleket nem tud visszanézni belőle (nincs mit).
-- **Nincs felhasználói fiók/jelszó** — a hozzáférés kulcsa a **párosító kód**: egy rövid (6 karakteres, kötőjellel tagolt, pl. `AB3-K9Q`), kényelmesen begépelhető kód, amit csak a te két géped ismer. Ez lényegesen kevesebb kombináció, mint egy UUID, ezért a `server.js` IP-nkénti rate limitet alkalmaz az új kapcsolódási kísérletekre (alapból percenként ~20), hogy a kód végigpróbálgatása ne legyen praktikus — ez a `MIN_CODE_LENGTH`/`RATE_LIMIT_*` konstansokkal hangolható a fájl tetején.
-- **A relay csak jóváhagyott, összekötött eszközök között forwardol** — minden eszköznek saját, állandó kódja van, és csak azok az eszközök látják egymást, amelyek kifejezetten jóváhagyták egymást. Egy idegen, ismeretlen kóddal csatlakozó eszköz sosem lát senkit, amíg valamelyik oldal jóvá nem hagyja.
+- **No file storage** — the relay forwards data in memory, immediately, and never writes it to disk. Even if someone breaks into the VPS, they can't look back at past transfers (there's nothing to find).
+- **No user accounts/passwords** — access is keyed by the **pairing code**: a short (6-character, dash-separated, e.g. `AB3-K9Q`), comfortably typeable code known only to your two machines. That's a significantly smaller space than a UUID, so `server.js` rate-limits new connection attempts per IP (~20/minute by default) to make brute-forcing a code impractical — tunable via the `MIN_CODE_LENGTH`/`RATE_LIMIT_*` constants at the top of the file.
+- **The relay only forwards between approved, linked devices** — every device has its own permanent code, and only devices that have explicitly approved each other can see one another. A stranger connecting with an unknown code never sees anyone until one side approves them.
 
-**Amit viszont neked kell beállítanod, hogy tényleg biztonságos legyen:**
+**What you still need to set up yourself for this to actually be safe:**
 
-1. **Mindig TLS-en (wss://) keresztül használd, ne sima ws://-n.** Sima
-   `ws://` esetén a fájljaid tartalma (base64-ben) titkosítatlanul megy át
-   az interneten — bárki, aki lát a hálózati útvonalon (pl. egy rosszhiszemű
-   szolgáltató, vagy ugyanazon a wifin lévő valaki, ha épp azon vagy),
-   elolvashatja. A mellékelt `Caddyfile.example` ezt egy paranccsal
-   megoldja: ingyenes, automatikusan megújuló TLS-tanúsítványt szerez
-   (Let's Encrypt) és `wss://relay.sajatdomained.com`-ként teszi elérhetővé.
-2. **Tűzfal**: csak a 443-as (HTTPS/WSS) és a 22-es (SSH) portot engedd
-   kívülről; a relay saját Node/Docker portja (8787) maradjon csak
-   `127.0.0.1`-en — a mellékelt `docker-compose.yml` már így van beállítva.
-   Példa (ufw): `ufw allow 22,443/tcp && ufw enable`.
-3. **Alap VPS-higiénia**: SSH csak kulccsal (jelszavas bejelentkezés
-   kikapcsolva), root bejelentkezés tiltva, rendszeres `apt upgrade`, esetleg
-   `fail2ban` az SSH brute force ellen. Ez minden internetre kitett gépre
-   igaz, nem Beamzy-specifikus, de a relay sem ér semmit, ha maga a VPS
-   sérül.
-4. **A párosító kód szándékosan állandó és nem generálható újra** — ez
-   megakadályozza, hogy egy kitiltott eszköz egyszerűen új kóddal
-   megkerülje a tiltást. Ha egy kód mégis kiszivárogna, az adott eszközt
-   a `/admin/block` végponton lehet kitiltani (lásd fent).
+1. **Always use it over TLS (wss://), never plain ws://.** Over plain `ws://`, the contents of your files (base64-encoded) travel over the internet unencrypted — anyone who can see the network path (e.g. a malicious ISP, or someone on the same Wi-Fi if you're on it) can read them. The included `Caddyfile.example` handles this with one command: it gets a free, auto-renewing TLS certificate (Let's Encrypt) and serves it as `wss://relay.yourdomain.com`.
+2. **Firewall**: only allow port 443 (HTTPS/WSS) and 22 (SSH) from the outside; keep the relay's own Node/Docker port (8787) bound to `127.0.0.1` only — the included `docker-compose.yml` is already set up this way. Example (ufw): `ufw allow 22,443/tcp && ufw enable`.
+3. **Basic VPS hygiene**: SSH key-only (password login disabled), root login disabled, regular `apt upgrade`, maybe `fail2ban` against SSH brute-forcing. This applies to any internet-facing machine, not Beamzy-specific — but the relay isn't worth much either if the VPS itself gets compromised.
+4. **The pairing code is deliberately permanent and can't be regenerated** — this prevents a blocked device from simply dodging the ban with a new code. If a code does leak, that device can be blocked at the `/admin/block` endpoint (see above).
 
-Összefoglalva: a relay maga (a kódja, a modellje) eleve úgy van megtervezve,
-hogy még ha nyilvánosan elérhető is, önmagában ne jelentsen komoly kockázatot
-(nincs tárolt adat, nincs fiókrendszer feltörhető jelszava) — a fő teendőd a
-**TLS bekapcsolása** és **alap szerver-higiénia**, ezután nyugodtan futtatható
-akár a legkisebb, néhány dolláros VPS-en is.
+In short: the relay itself (its code, its model) is designed so that even if it's publicly reachable, it isn't a serious risk on its own (no stored data, no account system with passwords to crack) — your main job is **turning on TLS** and **basic server hygiene**, after which it can comfortably run on even the smallest, few-dollar VPS.
 
-## Telepítés
+## Deployment
 
-### A) Docker (ajánlott — a legkevesebb beállítással jár)
+### A) Docker (recommended — the least setup)
 
 ```bash
-# a VPS-en, miután feltöltötted ezt a relay/ mappát
+# on the VPS, after uploading this relay/ folder
 cd relay
 docker compose up -d --build
 ```
 
-Ezután állítsd be a `Caddyfile.example` alapján a Caddy-t (vagy bármilyen
-más reverse proxyt) a domained TLS-eléréséhez, és a `docker-compose.yml`
-már eleve csak `127.0.0.1:8787`-re köti ki a portot, tehát a Node folyamat
-sosem közvetlenül a nyílt internetről érhető el.
+Then set up Caddy (or any other reverse proxy) based on `Caddyfile.example` for TLS on your domain — `docker-compose.yml` already binds the port to `127.0.0.1:8787` only, so the Node process is never directly reachable from the open internet.
 
-### B) Sima Node.js + systemd
+### B) Plain Node.js + systemd
 
 ```bash
 sudo mkdir -p /opt/beamzy-relay
@@ -98,7 +54,7 @@ sudo cp server.js package.json /opt/beamzy-relay/
 cd /opt/beamzy-relay
 sudo npm install --omit=dev
 
-sudo useradd --system --no-create-home beamzy   # ha még nincs ilyen user
+sudo useradd --system --no-create-home beamzy   # if this user doesn't exist yet
 sudo chown -R beamzy:beamzy /opt/beamzy-relay
 
 sudo cp beamzy-relay.service /etc/systemd/system/
@@ -106,14 +62,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now beamzy-relay
 ```
 
-Ezután itt is állítsd be a Caddy-t/nginx-et TLS-hez a `Caddyfile.example`
-alapján — a systemd unit is alapból csak a helyi 8787-es porton figyel.
+Here too, set up Caddy/nginx for TLS based on `Caddyfile.example` — the systemd unit also only listens on local port 8787 by default.
 
-### Ellenőrzés
+### Verifying it
 
 ```bash
-curl -s https://relay.sajatdomained.com/   # -> "Beamzy relay OK"
+curl -s https://relay.yourdomain.com/   # -> "Beamzy relay OK"
 ```
 
-Utána a Beamzy appban (mindkét géped Beállítások > Remote access) add
-meg a `wss://relay.sajatdomained.com` címet, és a párosító kódot.
+Then in the Beamzy app (on both your machines, Settings > Remote access), enter the `wss://relay.yourdomain.com` address and the pairing code.

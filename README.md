@@ -1,69 +1,69 @@
 # Beamzy
 
-Ultra gyors fájlküldés Mac és Windows gépek között, ugyanazon a helyi hálózaton (wifi/router). Nincs felhő, nincs feltöltési korlát — a két gép közvetlenül, egymás között küldi a fájlokat a helyi hálózaton.
+Ultra-fast file transfer between Mac and Windows machines on the same local network (Wi-Fi/router). No cloud, no upload limits — the two machines send files directly to each other over the local network.
 
-## Hogyan működik
+## How it works
 
-- **Felderítés**: az app mDNS-szel (Bonjour) automatikusan megtalálja a hálózaton futó másik Beamzy példányokat, párosítási kód nélkül.
-- **Küldés (push)**: kiválasztod a fájlokat / mappát, és hogy a másik gépen melyik megosztott mappába kerüljön — utána azonnal indul az átvitel.
-- **Lehúzás (pull)**: a másik gép megosztott mappáiban böngészhetsz, és bármelyik fájlt magadhoz húzhatod, anélkül hogy a másik gépen bárkinek fel kellene töltenie.
-- **Jogosultságok**: csak azok a mappák láthatók / írhatók kívülről, amelyeket te kifejezetten megosztasz az appban (Beállítások, vagy az első indításkor).
-- **Távoli hozzáférés (relay)**: ha a két géped nincs ugyanazon a hálózaton, a Beállítások > Remote access alatt bekapcsolhatod — ekkor egy közvetítő szerveren ("relay") keresztül is tudtok fájlt küldeni/húzni. Lásd lent.
+- **Discovery**: the app uses mDNS (Bonjour) to automatically find other Beamzy instances on the network, no pairing code needed.
+- **Push**: pick the files/folder to send and which shared folder on the other machine they should land in — the transfer starts right away.
+- **Pull**: browse the other machine's shared folders and pull any file to yours, without anyone on the other end having to upload it themselves.
+- **Permissions**: only folders you explicitly share in the app (Settings, or during first launch) are visible/writable from the outside.
+- **Remote access (relay)**: if your two machines aren't on the same network, turn this on under Settings > Remote access — files can then also be sent/pulled through a relay server. See below.
 
-## Távoli (nem-LAN) átvitel — relay szerver
+## Remote (non-LAN) transfer — the relay server
 
-Amikor mindkét géped ugyanazon a wifin/routeren van, az app a fenti közvetlen, gyors útvonalat használja. Ha viszont az egyik géped távol van (más hálózaton, otthonról-irodából stb.), közvetlen kapcsolat általában nem lehetséges (NAT/tűzfal miatt) — ehhez kell egy, az interneten futó **relay szerver**, ami csak továbbítja az adatot a két saját géped között (nem tárol, nem lát bele semmibe, csak egy "cső").
+When both your machines are on the same Wi-Fi/router, the app uses the direct, fast path above. But if one machine is somewhere else (a different network, home vs. office, etc.), a direct connection usually isn't possible (NAT/firewalls) — that needs a **relay server** running on the internet, which just forwards data between your two machines (it never stores anything or looks inside — it's just a pipe).
 
-**Ez a relay a *termék* háttérszolgáltatása, nem az egyes felhasználók infrastruktúrája.** Egyetlen relay-telepítés korlátlan sok eszközpárt tud egyszerre kiszolgálni — mindegyik párost a saját, egyedi párosító kódja különíti el a többiektől egy közös szobában (`pairId`), a relay memóriájában, fájltárolás vagy fiókrendszer nélkül. Ha ezt az appot publikálni szeretnéd, **neked (a fejlesztőnek) kell egyszer, központilag elindítanod egy relay-t** — a végfelhasználóidnak ehhez soha nem kell VPS-t üzemeltetniük, nekik tényleg csak a 2 saját gépük kell:
+**This relay is a backend service *for the product*, not something individual users run.** A single relay deployment can serve an unlimited number of device pairs at once — each pair is kept isolated from the others by its own unique pairing code in a shared room (`pairId`), in the relay's memory, with no file storage or account system. If you want to publish this app, **you (the developer) set up one relay, once, centrally** — your end users never need to run a VPS themselves, they really only need their 2 machines:
 
-1. **Te, a fejlesztő, telepíted a relay-t** — egyszer, egy helyen — egy publikusan elérhető szerverre (a `relay/` mappa egy önálló, függőségmentes kis Node.js szerver):
+1. **You, the developer, deploy the relay** — once, in one place — on a publicly reachable server (the `relay/` folder is a small, dependency-free, standalone Node.js server):
    ```bash
    cd relay
    npm install
-   npm start   # vagy: node server.js
+   npm start   # or: node server.js
    ```
-   Bármilyen Node.js-t futtató helyen elindítható: egy olcsó VPS-en, vagy ingyenes szolgáltatásokon (Render, Railway, Fly.io stb.) — a lényeg, hogy legyen egy `wss://...` címe. Részletes telepítési útmutató (Docker/systemd, gépigény, TLS, tűzfal, biztonsági megfontolások): [`relay/DEPLOY.md`](relay/DEPLOY.md).
+   It runs anywhere Node.js runs: a cheap VPS, or free-tier services (Render, Railway, Fly.io, etc.) — the only requirement is a `wss://...` address. For a detailed deployment guide (Docker/systemd, sizing, TLS, firewall, security considerations): [`relay/DEPLOY.md`](relay/DEPLOY.md).
 
-2. **Ezt az egy URL-t beégeted az appba, mielőtt publikálod**: nyisd meg a `src/main/constants.ts`-t, írd át a `DEFAULT_RELAY_URL`-t a saját relayedre, majd buildeld újra (`npm run build:mac` / `npm run build:win`). Ettől kezdve **minden** telepített Beamzy-példány — bárkié, aki letölti a publikált appot — ugyanazt a központi relay-t használja alapból, a távoli hozzáférés pedig már be is van kapcsolva alapértelmezetten.
+2. **Bake that one URL into the app before publishing it**: open `src/main/constants.ts`, set `DEFAULT_RELAY_URL` to your own relay, then rebuild (`npm run build:mac` / `npm run build:win`). From then on, **every** installed Beamzy instance — anyone's, who downloads the published app — uses that same central relay by default, with remote access already turned on out of the box.
 
-3. **A végfelhasználó (akár te magad a két géped között, akár bárki más, aki majd letölti az appot) ettől kezdve tényleg csak 2 gépet lát**: telepíti az appot mindkét eszközére, az onboarding végén megjelenik egy **párosító kód** (pl. `AB3-K9Q`) — az első gépen ezt egyszerűen otthagyja, a másodikon pedig felülírja az első gép kódjával. Ha a kód egyezik, a két eszköz látja egymást "🌐 Remote" jelöléssel, és attól kezdve ugyanúgy küldhetnek/húzhatnak fájlokat, mint helyi hálózaton — csak az átvitel a relay-n át megy (ezért lassabb, mint LAN-on, a sebességet az internet-feltöltési/letöltési sebességük korlátozza). Sem VPS-t, sem beállítást, sem Settings-ben turkálást nem igényel tőlük.
+3. **From here, the end user (whether that's you between your own two machines, or anyone else who downloads the app) really only ever sees 2 machines**: they install the app on both devices, and at the end of onboarding a **pairing code** shows up (e.g. `AB3-K9Q`) — they leave it as-is on the first device, and overwrite it with the first device's code on the second. Once the codes match, the two devices see each other labeled "🌐 Remote", and from then on can send/pull files just like on a local network — just routed through the relay (so slower than LAN, limited by their internet upload/download speed). No VPS, no configuration, no digging through Settings required from them.
 
-> **Biztonsági modell**: a párosító kód rövid (6 karakter + kötőjel), hogy kényelmesen begépelhető legyen — ezért a relay szerver korlátozza az új kapcsolódási kísérletek számát IP-nként (percenként max. ~20), hogy a kód találgatása ne legyen praktikus. A relay maga nem old meg felhasználói fiókokat/jelszavakat, csak a kód alapján azonosítja az eszközöket; a kód szándékosan állandó és nem generálható újra, hogy egy kitiltott eszköz ne tudjon a tiltás elől új kóddal megszökni — ha egy kód mégis kompromittálódna, az adott eszközt a `/admin/block` végponton lehet kitiltani.
+> **Security model**: the pairing code is short (6 characters + a dash) so it's comfortable to type — so the relay server rate-limits new connection attempts per IP (~20/minute by default) to make guessing a code impractical. The relay itself doesn't handle user accounts/passwords, it just identifies devices by their code; the code is deliberately permanent and can't be regenerated, so a blocked device can't dodge a ban with a fresh one — if a code is ever compromised, that device can be blocked at the `/admin/block` endpoint.
 
-## Forráskód és automatikus frissítés — két külön dolog
+## Source code and auto-updates — two separate things
 
-A forráskód egy **privát** GitHub repóban van (`github.com/VBoti201/beamzy`) — ez csak verziókövetésre/biztonsági mentésre való, nincs köze ahhoz, honnan töltik le a felhasználók az app-frissítéseket. Mivel privát repo release-eit nem tudja letölteni egy telepített app (token nélkül), az automatikus frissítés (lásd `src/main/updater.ts`) **nem GitHubról megy**, hanem egy általad üzemeltetett, sima statikus fájlszerverről (`electron-updater` "generic" provider, lásd a `package.json` `build.publish.url`-jét) — ugyanarra a VPS-re rakhatod, mint a relay-t.
+The source code lives in a **private** GitHub repo (`github.com/VBoti201/Beamzy`) — that's purely for version control/backup, and has nothing to do with where users actually download app updates from. Since an installed app can't download releases from a private repo (without a token), auto-updates (see `src/main/updater.ts`) **don't go through GitHub** — instead they use a plain static file server you host yourself (`electron-updater`'s "generic" provider, see `build.publish.url` in `package.json`) — you can put this on the same VPS as the relay.
 
-> **Megjegyzés**: minden kiadott verzió egy új commitban adja hozzá az `updates/` alá a bináris fájlokat (~150-250 MB/verzió), a régieket viszont sosem törli a git history — ez lassan, de folyamatosan növeli a `.git` méretét, hiába csak a legutolsó verzió számít ténylegesen. Ha ez már zavaróan nagyra nőtt (`du -sh .git`), a `scripts/trim-update-history.sh` egy paranccsal kitisztítja (csak a jelenlegi verzió binárisait tartja meg a history-ban) — a szkript végén jelzett `git push --force`-ot viszont neked kell lefuttatnod egy sima terminálban, mert ezt Claude Code biztonsági okból nem futtatja le felügyelet nélkül.
+> **Note**: every released version adds its binaries under `updates/` in a new commit (~150-250MB/version), and old ones are never removed from git history — this slowly but steadily grows the size of `.git`, even though only the latest version actually matters. If this has grown uncomfortably large (`du -sh .git`), `scripts/trim-update-history.sh` cleans it up with one command (keeping only the current version's binaries in history) — the `git push --force` it prints at the end needs to be run by you in a plain terminal, though, since Claude Code won't run that unattended for safety reasons.
 
-## Fejlesztői indítás
+## Running it in development
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Build
+## Building
 
 ```bash
-npm run build       # csak fordítás, csomagolás nélkül
-npm run build:mac   # .dmg / .zip macOS-hez (macOS gépen futtatva)
-npm run build:win   # .exe (NSIS + portable) Windows-hoz
+npm run build       # compile only, no packaging
+npm run build:mac   # .dmg / .zip for macOS (run on a macOS machine)
+npm run build:win   # .exe (NSIS + portable) for Windows
 ```
 
-> **Megjegyzés a Windows build-hez**: `npm run build:win` (NSIS installer + portable exe) Mac gépről futtatva `wine`-t igényel. Wine nélkül is lehet Windows-buildet készíteni Macen — ez nem ad szép telepítőt, de a `Beamzy.exe` simán fut vele:
+> **Note on the Windows build**: running `npm run build:win` (NSIS installer + portable exe) from a Mac requires `wine`. You can still produce a Windows build on a Mac without Wine — it won't be a proper installer, but the resulting `Beamzy.exe` runs fine:
 > ```bash
 > npx electron-builder --win dir --x64
 > cd dist && zip -r Beamzy-win-x64.zip win-unpacked
 > ```
-> A kapott zip-et kicsomagolva Windows gépen a `win-unpacked\Beamzy.exe`-re duplán kattintva indul az app. Ha szép telepítőt szeretnél (Start Menu bejegyzés stb.), vagy futtasd a `build:win` parancsot közvetlenül egy Windows gépen, vagy telepítsd a Wine-t (`brew install --cask wine-stable`) — Apple Siliconon ez néha akadozik electron-builderrel.
+> Unzip that on a Windows machine and double-click `win-unpacked\Beamzy.exe` to launch it. If you want a proper installer (Start Menu entry, etc.), either run `build:win` directly on a Windows machine, or install Wine (`brew install --cask wine-stable`) — on Apple Silicon this sometimes has hiccups with electron-builder.
 
-## Tűzfal / hálózat
+## Firewall / network
 
-Az első indításkor mind macOS, mind Windows megkérdezheti, hogy az app kommunikálhat-e a helyi hálózaton (macOS: "Local Network" engedély, Windows: Defender tűzfal felugró ablak). Ezt mindkét gépen engedélyezni kell, különben a felderítés és az átvitel nem fog működni.
+On first launch, both macOS and Windows may ask whether the app can communicate on the local network (macOS: "Local Network" permission, Windows: a Defender firewall prompt). This needs to be allowed on both machines, otherwise discovery and transfer won't work.
 
-## Architektúra dióhéjban
+## Architecture in a nutshell
 
-- `src/main` — Electron main process: eszközkonfiguráció (`electron-store`), mDNS felderítés (`bonjour-service`), saját HTTP-alapú átviteli szerver és kliens (Node `http`, stream-elve — nincs felesleges overhead).
-- `src/preload` — biztonságos, `contextBridge`-en keresztüli API a felülethez.
-- `src/renderer` — React + TypeScript UI, `framer-motion` animációkkal (indítóképernyő, átmenetek, drag & drop, élő átviteli sáv).
+- `src/main` — Electron main process: device config (`electron-store`), mDNS discovery (`bonjour-service`), a custom HTTP-based transfer server and client (Node's `http`, streamed — no unnecessary overhead).
+- `src/preload` — a secure API for the UI via `contextBridge`.
+- `src/renderer` — React + TypeScript UI, animated with `framer-motion` (splash screen, transitions, drag & drop, live transfer bar).
