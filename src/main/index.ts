@@ -106,6 +106,26 @@ function sendToWindow(channel: string, payload: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
 }
 
+const PROGRESS_THROTTLE_MS = 120
+const lastProgressSentAt = new Map<string, number>()
+
+// A fast LAN transfer can emit a progress event per ~64KB chunk — for a
+// large file that's easily hundreds/thousands a second, each one forcing an
+// IPC round-trip and a React re-render. That doesn't stall the actual file
+// I/O (it's on a separate stream in the main process), but it can make the
+// whole renderer feel janky/unresponsive for as long as the transfer runs.
+// Rate-limit updates per transfer; always let the terminal (done/error)
+// event through immediately so completion is never delayed or dropped.
+function sendProgress(p: Record<string, unknown> & { transferId: string; done?: boolean; error?: string }): void {
+  const isTerminal = Boolean(p.done || p.error)
+  const now = Date.now()
+  const last = lastProgressSentAt.get(p.transferId)
+  if (!isTerminal && last !== undefined && now - last < PROGRESS_THROTTLE_MS) return
+  if (isTerminal) lastProgressSentAt.delete(p.transferId)
+  else lastProgressSentAt.set(p.transferId, now)
+  sendToWindow('transfer:progress', p)
+}
+
 function recordHistory(entry: Parameters<typeof addHistoryEntry>[0]): void {
   const entries = addHistoryEntry(entry)
   sendToWindow('history:update', entries)
@@ -132,7 +152,7 @@ function applyHistoryDelete(transferId: string): void {
 const relayClient = new RelayClient({
   onPeers: (peers) => sendToWindow('relay:peers-update', peers),
   onStatus: (status) => sendToWindow('relay:status-update', status),
-  onProgress: (p) => sendToWindow('transfer:progress', p),
+  onProgress: (p) => sendProgress({ ...p }),
   onHistory: (e) => recordHistory({ ...e, transport: 'relay' }),
   onPairingRequest: (req) => sendToWindow('relay:pairing-request', { ...req, source: 'relay' }),
   onHistoryDeleteRequest: (transferId) => applyHistoryDelete(transferId)
@@ -184,7 +204,7 @@ async function bootstrap(): Promise<void> {
     onIncomingProgress: (e) => {
       const remote = e.remoteAddress.replace(/^::ffff:/, '')
       const peer = currentPeers.find((p) => p.addresses?.includes(remote))
-      sendToWindow('transfer:progress', {
+      sendProgress({
         transferId: e.id,
         fileName: e.fileName,
         bytesTransferred: e.bytesTransferred,
@@ -436,7 +456,7 @@ ipcMain.handle(
       const transferId = randomUUID()
       try {
         await pushFile(args.host, args.port, args.folderId, args.destRelPath || '', filePath, transferId, getConfig().deviceId, (p) =>
-          sendToWindow('transfer:progress', { ...p, peerId })
+          sendProgress({ ...p, peerId })
         )
         recordHistory({
           transferId,
@@ -449,7 +469,7 @@ ipcMain.handle(
           size: fs.statSync(filePath).size
         })
       } catch (err) {
-        sendToWindow('transfer:progress', {
+        sendProgress({
           transferId,
           fileName: path.basename(filePath),
           bytesTransferred: 0,
@@ -474,7 +494,7 @@ ipcMain.handle(
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
     const peerId = peer?.id || args.host
     const result = await pullFile(args.host, args.port, args.folderId, args.remoteRelPath, destFolder.path, transferId, cfg.deviceId, (p) =>
-      sendToWindow('transfer:progress', { ...p, peerId })
+      sendProgress({ ...p, peerId })
     )
     recordHistory({
       transferId,

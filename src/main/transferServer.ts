@@ -2,6 +2,7 @@ import http from 'http'
 import fs from 'fs'
 import path from 'path'
 import { getConfig, effectivePermission } from './config'
+import { isLanDeviceApproved } from './lanTrust'
 
 export interface IncomingProgressEvent {
   direction: 'up'
@@ -48,20 +49,19 @@ function ensureDir(dir: string): void {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 }
 
-// Falls back to the folder's own default when the caller didn't report a
-// requesterId (an older client build) — otherwise resolves the requesting
-// device's own per-device override.
+// Denies outright unless requesterId is both present and an explicitly
+// approved LAN device — a missing/unrecognized/unapproved requesterId used
+// to silently fall back to the folder's own (often wide-open) default,
+// which meant any unauthenticated client on the network could hit these
+// endpoints directly without ever going through the pairing-approval modal.
+// isLanDeviceApproved is the actual gate; effectivePermission only resolves
+// *which* permissions an already-approved device has.
 function permissionFor(
   cfg: ReturnType<typeof getConfig>,
   requesterId: string,
   folderId: string
 ): { allowBrowse: boolean; allowUpload: boolean; allowDownload: boolean } | null {
-  if (!requesterId) {
-    const folder = cfg.sharedFolders.find((f) => f.id === folderId)
-    return folder
-      ? { allowBrowse: folder.allowBrowse, allowUpload: folder.allowUpload, allowDownload: folder.allowDownload !== false }
-      : null
-  }
+  if (!requesterId || !isLanDeviceApproved(requesterId)) return null
   return effectivePermission(cfg, requesterId, folderId)
 }
 
@@ -232,6 +232,21 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     let bytesTransferred = 0
     req.on('data', (chunk: Buffer) => {
       bytesTransferred += chunk.length
+      // A peer with genuine upload permission could still (bug or malice)
+      // stream past what it declared in Content-Length — cut it off rather
+      // than let it fill the disk unbounded, and drop the partial file
+      // since it can never match what the sender's own transferId expects.
+      if (totalBytes > 0 && bytesTransferred > totalBytes) {
+        activeIncoming.delete(transferId)
+        req.destroy()
+        writeStream.destroy()
+        fs.unlink(destFile, () => {})
+        if (!res.headersSent) {
+          res.writeHead(413)
+          res.end('payload exceeded declared size')
+        }
+        return
+      }
       events.onIncomingProgress?.({
         direction: 'up',
         id: transferId || destFile,

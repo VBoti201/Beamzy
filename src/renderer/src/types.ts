@@ -15,6 +15,14 @@ export interface RelayConfig {
 
 export type Theme = 'dark' | 'light'
 
+export interface DevicePermission {
+  deviceId: string
+  folderId: string
+  allowBrowse: boolean
+  allowUpload: boolean
+  allowDownload: boolean
+}
+
 export interface AppConfig {
   deviceId: string
   deviceName: string
@@ -22,6 +30,7 @@ export interface AppConfig {
   sharedFolders: SharedFolder[]
   relay: RelayConfig
   theme: Theme
+  devicePermissions: DevicePermission[]
 }
 
 export interface DriveInfo {

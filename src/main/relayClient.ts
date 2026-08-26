@@ -59,6 +59,7 @@ interface PendingRequest {
   resolve: (v: unknown) => void
   reject: (e: Error) => void
   timer: NodeJS.Timeout
+  expectedFrom: string
 }
 
 interface PendingPull {
@@ -203,7 +204,7 @@ export class RelayClient {
         this.pendingRequests.delete(requestId)
         reject(new Error('Remote device did not respond in time'))
       }, REQUEST_TIMEOUT_MS)
-      this.pendingRequests.set(requestId, { resolve: resolve as (v: unknown) => void, reject, timer })
+      this.pendingRequests.set(requestId, { resolve: resolve as (v: unknown) => void, reject, timer, expectedFrom: to })
       this.sendRelay(to, { ...payload, requestId })
     })
   }
@@ -304,10 +305,10 @@ export class RelayClient {
         return
       case 'targets-response':
       case 'list-response':
-        this.resolvePending(payload.requestId as string, payload)
+        this.resolvePending(payload.requestId as string, from, payload)
         return
       case 'error-response':
-        this.rejectPending(payload.requestId as string, String(payload.message || 'Remote error'))
+        this.rejectPending(payload.requestId as string, from, String(payload.message || 'Remote error'))
         return
       case 'list-request':
         this.respondList(from, payload)
@@ -333,17 +334,21 @@ export class RelayClient {
     }
   }
 
-  private resolvePending(requestId: string, value: unknown): void {
+  // Requires the reply to actually come from the peer the request was sent
+  // to — a requestId is just a random UUID with nothing else backing it, so
+  // without this any online device that happened to guess/observe one
+  // could resolve someone else's pending request with its own data.
+  private resolvePending(requestId: string, from: string, value: unknown): void {
     const pending = this.pendingRequests.get(requestId)
-    if (!pending) return
+    if (!pending || pending.expectedFrom !== from) return
     clearTimeout(pending.timer)
     this.pendingRequests.delete(requestId)
     pending.resolve(value)
   }
 
-  private rejectPending(requestId: string, message: string): void {
+  private rejectPending(requestId: string, from: string, message: string): void {
     const pending = this.pendingRequests.get(requestId)
-    if (!pending) return
+    if (!pending || pending.expectedFrom !== from) return
     clearTimeout(pending.timer)
     this.pendingRequests.delete(requestId)
     pending.reject(new Error(message))
@@ -466,6 +471,16 @@ export class RelayClient {
     const write = this.incomingWrites.get(transferId)
     if (!write) return
     const buf = Buffer.from(data, 'base64')
+    // A peer with genuine upload permission could still (bug or malice)
+    // keep sending chunks past what it declared in upload-start — cut it
+    // off rather than let it fill the disk unbounded.
+    if (write.totalBytes > 0 && write.bytesTransferred + buf.length > write.totalBytes) {
+      write.stream.destroy()
+      this.incomingWrites.delete(transferId)
+      fs.unlink(write.destFile, () => {})
+      this.sendRelay(write.fromPeerId, { kind: 'upload-error', transferId, message: 'Payload exceeded declared size' })
+      return
+    }
     write.stream.write(buf)
     write.bytesTransferred += buf.length
     this.callbacks.onProgress({

@@ -124,6 +124,18 @@ const onlineByCode = new Map()
 // re-approval prompt after a redeploy).
 const approvedLinks = new Map()
 
+// deviceId -> the code it first proved ownership of. deviceId itself is
+// just a client-asserted string with nothing cryptographic backing it —
+// without this, anyone who learns a victim's deviceId (routinely shared to
+// their approved links via presence) could reconnect claiming to *be* that
+// deviceId and hijack their identity toward everyone linked to them. Since
+// a device's code is never shared with anyone else (presence only ever
+// includes deviceId/name/platform, never code), pinning a deviceId to
+// whichever code it showed up with first means impersonating it also
+// requires knowing that code — which an attacker who only saw the deviceId
+// never does. In-memory, same redeploy-resets trade-off as approvedLinks.
+const deviceCodeBinding = new Map()
+
 // requestId -> { fromDeviceId, fromCorrelationId, toDeviceId, name, platform, timer }
 const pendingConnects = new Map()
 
@@ -409,6 +421,13 @@ wss.on('connection', (ws, req) => {
     ws.close(4001, 'that code is currently in use by another device')
     return
   }
+
+  const boundCode = deviceCodeBinding.get(deviceId)
+  if (boundCode && boundCode !== code) {
+    ws.close(4001, 'that device id is not associated with this code')
+    return
+  }
+  if (!boundCode) deviceCodeBinding.set(deviceId, code)
 
   onlineDevices.set(deviceId, { ws, code, name, platform })
   onlineByCode.set(code, deviceId)

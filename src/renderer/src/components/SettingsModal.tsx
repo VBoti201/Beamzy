@@ -52,6 +52,11 @@ export default function SettingsModal({
 
   const discardAndClose = (): void => {
     document.documentElement.dataset.theme = config.theme
+    // Relay changes (unlike name/folders/theme) already persisted the
+    // moment they were made, regardless of Save — sync them into the
+    // parent's config now so reopening Settings later shows what's
+    // actually live instead of the stale pre-change value.
+    onSaved({ ...config, relay })
     onClose()
   }
 

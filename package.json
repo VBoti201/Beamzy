@@ -1,6 +1,6 @@
 {
   "name": "swiftsend",
-  "version": "0.1.52",
+  "version": "0.1.53",
   "description": "Ultra-fast LAN file transfer between your Mac and Windows devices",
   "main": "./out/main/index.js",
   "author": "verdesboti@icloud.com",
@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"
   },
   "dependencies": {
-    "adm-zip": "^0.6.0",
+    "archiver": "^8.0.0",
     "bonjour-service": "^1.2.1",
     "electron-store": "^8.2.0",
     "electron-updater": "^6.8.9",
@@ -27,7 +27,7 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
-    "@types/adm-zip": "^0.5.8",
+    "@types/archiver": "^8.0.0",
     "@types/node": "^20.14.2",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
@@ -47,8 +47,14 @@
       "out/**/*"
     ],
     "extraResources": [
-      { "from": "build/icon_512.png", "to": "icon_512.png" },
-      { "from": "build/icon-light_512.png", "to": "icon-light_512.png" }
+      {
+        "from": "build/icon_512.png",
+        "to": "icon_512.png"
+      },
+      {
+        "from": "build/icon-light_512.png",
+        "to": "icon-light_512.png"
+      }
     ],
     "mac": {
       "target": [
