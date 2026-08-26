@@ -1,11 +1,16 @@
-version: 0.1.57
+version: 0.1.58
 files:
-  - url: Beamzy Setup 0.1.57.exe
+  - url: Beamzy Setup 0.1.58.exe
     sha512: >-
-      etHQVTKNcvPaUN7tTWU4G498QpYJLFIQ/ok3vjLU2XI5mFZ+0AVJUultHieszAKqz+l/0PIUwdC7HlM5l4pwnw==
-    size: 79226743
-path: Beamzy Setup 0.1.57.exe
+      YOHIYMtTizberRVySSJwjJUeO1+Tyf18fWKjKC8IOXqzMl93pWq7DolhD/x8uRgDVXgJm1NHviUkzu2Ha2esSQ==
+    size: 79226339
+path: Beamzy Setup 0.1.58.exe
 sha512: >-
-  etHQVTKNcvPaUN7tTWU4G498QpYJLFIQ/ok3vjLU2XI5mFZ+0AVJUultHieszAKqz+l/0PIUwdC7HlM5l4pwnw==
-releaseDate: '2026-08-26T16:38:57.197Z'
-releaseNotes: Publish Windows update feed for 0.1.57 [skip ci]
+  YOHIYMtTizberRVySSJwjJUeO1+Tyf18fWKjKC8IOXqzMl93pWq7DolhD/x8uRgDVXgJm1NHviUkzu2Ha2esSQ==
+releaseDate: '2026-08-26T21:01:53.771Z'
+releaseNotes: |-
+  Auto-expire transfer history entries after 3 days
+
+  Recent activity no longer accumulates indefinitely (bounded only by the
+  200-entry cap before this) — anything older than 3 days is pruned the
+  next time the list is read or added to.
