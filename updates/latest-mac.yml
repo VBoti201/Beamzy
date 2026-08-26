@@ -1,20 +1,23 @@
-version: 0.1.58
+version: 0.1.59
 files:
-  - url: Beamzy-0.1.58-arm64-mac.zip
+  - url: Beamzy-0.1.59-arm64-mac.zip
     sha512: >-
-      NDdBl23ZCG5/VbpJz3a2O48BDk3wyjpIGra7gGIlKr3YgMJpJmuj8KQMeiV0anKtBrSnKE60hbXXxvmQAD5xDA==
-    size: 96856176
-  - url: Beamzy-0.1.58-arm64.dmg
+      ae0hrHjfFj8Vw7UGkWwbX69Y1oeEoiCJnEtVS7CfWZabz7dykCRpiexRsW526qeoVd3hNOfYWntSHJsXq4ym/A==
+    size: 96877984
+  - url: Beamzy-0.1.59-arm64.dmg
     sha512: >-
-      RDsRQX0Au2lBURxC0ER2PH2QrPN7Gux6nmwQLqiqC0WSp19R/++D1OKVjIax130Z/tj5JW9NaZvpG49BZy5mjw==
-    size: 100496589
-path: Beamzy-0.1.58-arm64-mac.zip
+      D6c4fuIZtXkwxF8mQhSiBhAz6T68VVDlTUrPlAUczx3C97PtWbodPLjUNLORhooadQXvDG+Vl4XAoScVpUFQ3g==
+    size: 100540984
+path: Beamzy-0.1.59-arm64-mac.zip
 sha512: >-
-  NDdBl23ZCG5/VbpJz3a2O48BDk3wyjpIGra7gGIlKr3YgMJpJmuj8KQMeiV0anKtBrSnKE60hbXXxvmQAD5xDA==
-releaseDate: '2026-08-26T21:01:05.026Z'
+  ae0hrHjfFj8Vw7UGkWwbX69Y1oeEoiCJnEtVS7CfWZabz7dykCRpiexRsW526qeoVd3hNOfYWntSHJsXq4ym/A==
+releaseDate: '2026-08-26T21:18:44.471Z'
 releaseNotes: |-
-  Auto-expire transfer history entries after 3 days
+  Fix app icon looking oversized next to native macOS apps
 
-  Recent activity no longer accumulates indefinitely (bounded only by the
-  200-entry cap before this) — anything older than 3 days is pruned the
-  next time the list is read or added to.
+  The icon's rounded-square shape filled the entire canvas edge to edge;
+  Apple's own apps leave the shape at roughly 80% of the canvas so it reads
+  at the same visual size as everything else in the Dock and Finder.
+  Rescaled both the dark and light variants down with transparent padding
+  and rebuilt icon.icns from the corrected artwork — no other change to
+  the design itself.
