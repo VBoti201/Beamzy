@@ -1,26 +1,30 @@
-version: 0.1.54
+version: 0.1.55
 files:
-  - url: Beamzy-0.1.54-arm64-mac.zip
+  - url: Beamzy-0.1.55-arm64-mac.zip
     sha512: >-
-      bGPpJDAzJk1mOxOFoHp0DN3uMHCCmA8Gxn1hbbLchQgrmvyAVui+ivvPLw8rcdBxWmiOFLwU9+7LSRnwYgUKLA==
-    size: 96853968
-  - url: Beamzy-0.1.54-arm64.dmg
+      q6kaVTzEI5HzRcgCtPe5sAwUvheHZaq92TwAje6en7ocN34gINpcAMyD5IZuf2O0OfsogidInaukcB4TKK3EBA==
+    size: 96855564
+  - url: Beamzy-0.1.55-arm64.dmg
     sha512: >-
-      Q5SeU3Pfa5FFQOXgVIB2EHyQNHuW092evFryP6Ug7VlQneMQ3ZCvuTrQj8RRehs/Ykw0YTVgq9rSOoXx85rN/w==
-    size: 100479598
-path: Beamzy-0.1.54-arm64-mac.zip
+      bUTa1NwUgV/kX00L01QewBG5TMIPmMbkHzBosMosLYEpuy+r0vA34eYrzqNGIuSIwmmJ91N99FgHiJzQ3FsTBA==
+    size: 100499183
+path: Beamzy-0.1.55-arm64-mac.zip
 sha512: >-
-  bGPpJDAzJk1mOxOFoHp0DN3uMHCCmA8Gxn1hbbLchQgrmvyAVui+ivvPLw8rcdBxWmiOFLwU9+7LSRnwYgUKLA==
-releaseDate: '2026-08-26T13:00:00.508Z'
-releaseNotes: >-
-  Fix second-audit findings: history-delete auth, relay peer-spoof, code-binding
-  lockout
+  q6kaVTzEI5HzRcgCtPe5sAwUvheHZaq92TwAje6en7ocN34gINpcAMyD5IZuf2O0OfsogidInaukcB4TKK3EBA==
+releaseDate: '2026-08-26T13:54:18.637Z'
+releaseNotes: |-
+  Replace LAN deviceId-as-credential with per-peer HMAC-signed requests
 
+  deviceId was broadcast in cleartext over mDNS, so it was never actually
+  secret — anyone on the same LAN could read a target's approved deviceId
+  and simply claim to be it in a requesterId query param, since that was
+  the only thing gating access to a device's shared folders. Every LAN
+  transfer-server request now instead has to prove possession of a random
+  per-peer secret exchanged out-of-band at approval time (new /api/lan-pair
+  endpoint, rate-limited and TOFU-bound), verified via a timestamped,
+  replay-protected HMAC signature (lanAuth.ts).
 
-  - history-delete endpoint now requires an approved LAN device, matching
-    the other transfer endpoints
-  - relay pulls now verify upload-start comes from the peer that was
-    actually asked, closing a transferId-guessing spoof window
-  - relay's deviceId-to-code binding now expires after 24h of inactivity
-    instead of being permanent, so an attacker who squats a victim's
-    deviceId can no longer lock them out until the next redeploy
+  Existing approved LAN pairs self-heal automatically the first time either
+  side talks to the other after both have updated — no manual re-pairing
+  needed. Both machines in a pair do need to be on this version or newer
+  before LAN transfers between them will work again.
