@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Beamzy · Admin</title>
+<style>
+  :root {
+    --bg: #08080a;
+    --card: rgba(255, 255, 255, 0.045);
+    --card-border: rgba(255, 255, 255, 0.09);
+    --text: #f2f2ee;
+    --text-dim: #9a9a91;
+    --accent: #ffd60a;
+    --on-accent: #14100a;
+    --danger: #ff5c5c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.4px; margin: 0 0 6px; }
+  .sub { color: var(--text-dim); font-size: 13px; margin-bottom: 28px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+  input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  .row { display: flex; gap: 10px; margin-top: 12px; }
+  .row input { flex: 1; }
+  button {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: var(--on-accent); }
+  .btn-primary:hover { background: #ffde33; }
+  .btn-secondary { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+  .btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+  .btn-danger { background: rgba(255, 92, 92, 0.15); color: var(--danger); border: 1px solid rgba(255, 92, 92, 0.3); }
+  .btn-danger:hover { background: rgba(255, 92, 92, 0.25); }
+  .list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 14px;
+  }
+  .list-item:last-child { border-bottom: none; }
+  .empty { color: var(--text-dim); font-size: 13px; padding: 8px 0; }
+  .msg { font-size: 13px; margin-top: 10px; min-height: 16px; }
+  .msg.error { color: var(--danger); }
+  .msg.ok { color: #6fd66f; }
+  #gate { max-width: 360px; margin: 120px auto 0; text-align: center; }
+  #gate .card { text-align: left; }
+  #app { display: none; }
+</style>
+</head>
+<body>
+  <div id="gate">
+    <div class="card">
+      <label for="tokenInput">Admin token</label>
+      <input id="tokenInput" type="password" autocomplete="off" placeholder="Paste the relay's ADMIN_TOKEN" />
+      <div class="row">
+        <button class="btn-primary" style="flex:1" id="unlockBtn" type="button">Unlock</button>
+      </div>
+      <div class="msg error" id="gateMsg"></div>
+    </div>
+  </div>
+
+  <div class="wrap" id="app">
+    <h1>Beamzy relay admin</h1>
+    <div class="sub">Block or unblock a device's pairing code on the relay. Not linked from anywhere public.</div>
+
+    <div class="card">
+      <label for="blockInput">Pairing code to block</label>
+      <div class="row">
+        <input id="blockInput" type="text" placeholder="e.g. AB3-K9Q" autocomplete="off" />
+        <button class="btn-danger" id="blockBtn" type="button">Block</button>
+      </div>
+      <div class="msg" id="blockMsg"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px">
+        <label style="margin:0">Currently blocked codes</label>
+        <button class="btn-secondary" id="refreshBtn" type="button">Refresh</button>
+      </div>
+      <div id="blockedList"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // The relay is a separate service from this static site, so every
+      // call here is cross-origin — the relay answers its own CORS
+      // preflight for /admin/* (see server.js) to allow it.
+      var API_BASE = 'https://swiftsend-cfxh.onrender.com';
+      var tokenKey = 'beamzy-admin-token';
+
+      var gate = document.getElementById('gate');
+      var app = document.getElementById('app');
+      var tokenInput = document.getElementById('tokenInput');
+      var gateMsg = document.getElementById('gateMsg');
+      var blockInput = document.getElementById('blockInput');
+      var blockMsg = document.getElementById('blockMsg');
+      var blockedList = document.getElementById('blockedList');
+
+      function getToken() {
+        try { return sessionStorage.getItem(tokenKey) || ''; } catch (e) { return ''; }
+      }
+      function setToken(t) {
+        try { sessionStorage.setItem(tokenKey, t); } catch (e) {}
+      }
+      function clearToken() {
+        try { sessionStorage.removeItem(tokenKey); } catch (e) {}
+      }
+
+      function api(path, options) {
+        options = options || {};
+        options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + getToken() });
+        return fetch(API_BASE + path, options).then(function (res) {
+          if (res.status === 401) {
+            clearToken();
+            showGate('That token was rejected by the relay.');
+            throw new Error('unauthorized');
+          }
+          if (!res.ok) throw new Error('Request failed (' + res.status + ')');
+          return res.json();
+        });
+      }
+
+      function showGate(message) {
+        gate.style.display = 'block';
+        app.style.display = 'none';
+        gateMsg.textContent = message || '';
+      }
+
+      function showApp() {
+        gate.style.display = 'none';
+        app.style.display = 'block';
+        loadBlocked();
+      }
+
+      function setMsg(el, text, ok) {
+        el.textContent = text || '';
+        el.className = 'msg ' + (ok ? 'ok' : 'error');
+      }
+
+      function loadBlocked() {
+        blockedList.innerHTML = '<div class="empty">Loading…</div>';
+        api('/admin/blocked')
+          .then(function (data) {
+            var codes = data.codes || [];
+            if (codes.length === 0) {
+              blockedList.innerHTML = '<div class="empty">Nothing blocked right now.</div>';
+              return;
+            }
+            blockedList.innerHTML = '';
+            codes.forEach(function (code) {
+              var row = document.createElement('div');
+              row.className = 'list-item';
+              var label = document.createElement('span');
+              label.textContent = code;
+              var unblockBtn = document.createElement('button');
+              unblockBtn.className = 'btn-secondary';
+              unblockBtn.textContent = 'Unblock';
+              unblockBtn.onclick = function () { unblock(code); };
+              row.appendChild(label);
+              row.appendChild(unblockBtn);
+              blockedList.appendChild(row);
+            });
+          })
+          .catch(function (err) {
+            if (err.message !== 'unauthorized') {
+              blockedList.innerHTML = '<div class="empty">Could not load the blocked list.</div>';
+            }
+          });
+      }
+
+      function unblock(code) {
+        api('/admin/unblock?code=' + encodeURIComponent(code), { method: 'POST' })
+          .then(function () { loadBlocked(); })
+          .catch(function () {});
+      }
+
+      document.getElementById('unlockBtn').addEventListener('click', function () {
+        var t = tokenInput.value.trim();
+        if (!t) return;
+        setToken(t);
+        gateMsg.textContent = '';
+        showApp();
+      });
+      tokenInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') document.getElementById('unlockBtn').click();
+      });
+
+      document.getElementById('blockBtn').addEventListener('click', function () {
+        var code = blockInput.value.trim();
+        if (!code) return;
+        api('/admin/block?code=' + encodeURIComponent(code), { method: 'POST' })
+          .then(function () {
+            setMsg(blockMsg, 'Blocked ' + code + '.', true);
+            blockInput.value = '';
+            loadBlocked();
+          })
+          .catch(function (err) {
+            if (err.message !== 'unauthorized') setMsg(blockMsg, err.message, false);
+          });
+      });
+      blockInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') document.getElementById('blockBtn').click();
+      });
+
+      document.getElementById('refreshBtn').addEventListener('click', loadBlocked);
+
+      if (getToken()) showApp();
+      else showGate();
+    })();
+  </script>
+</body>
+</html>

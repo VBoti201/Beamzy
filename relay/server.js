@@ -341,6 +341,21 @@ const httpServer = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ inUse: onlineByCode.has(code) }))
     return
   }
+  if (url.pathname.startsWith('/admin/')) {
+    // The admin page lives on a different origin (the landing site) than
+    // this API, and sends a custom Authorization header, so the browser
+    // preflights every request with OPTIONS first — without answering that
+    // (and echoing the header back as allowed), the browser never even
+    // attempts the real request.
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204)
+      res.end()
+      return
+    }
+  }
   if (url.pathname === '/admin/block' && req.method === 'POST') {
     if (!isAuthorized(req)) {
       res.writeHead(401)
@@ -367,6 +382,14 @@ const httpServer = http.createServer(async (req, res) => {
     const code = (url.searchParams.get('pairId') || url.searchParams.get('code') || '').toUpperCase()
     blockedCodes.delete(code)
     saveBlockedCodes()
+    // blockCode() also blocks the device's id (if it was online at block
+    // time) so a code regenerated afterward can't dodge the ban — undoing
+    // the block has to reverse that too, or the device stays silently
+    // blocked under its id even though its code no longer shows as blocked.
+    for (const [deviceId, binding] of deviceCodeBinding) {
+      if (binding.code === code) blockedDeviceIds.delete(deviceId)
+    }
+    saveBlockedDevices()
     res.writeHead(200, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ unblocked: code }))
     return
