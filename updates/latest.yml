@@ -1,17 +1,59 @@
-version: 0.1.52
+version: 0.1.53
 files:
-  - url: Beamzy Setup 0.1.52.exe
+  - url: Beamzy Setup 0.1.53.exe
     sha512: >-
-      Snr3On9Ekt8M+QfvgHGFcGsf/KqExy1MG8VQr8Bv7Irs4wVuhzbNAhJTPZwL7Cr3WyaXeaFjAtfsLstouPQI0A==
-    size: 78300423
-path: Beamzy Setup 0.1.52.exe
+      IsZv7slAQtpshJXpljiIR9NZ6Adtp0BZB1FJdk6MKZ0+k4WJGAUX8tWS2esO5VGPFvUV6R0zsQefhvSoGXVOPw==
+    size: 79224611
+path: Beamzy Setup 0.1.53.exe
 sha512: >-
-  Snr3On9Ekt8M+QfvgHGFcGsf/KqExy1MG8VQr8Bv7Irs4wVuhzbNAhJTPZwL7Cr3WyaXeaFjAtfsLstouPQI0A==
-releaseDate: '2026-08-24T23:06:12.634Z'
+  IsZv7slAQtpshJXpljiIR9NZ6Adtp0BZB1FJdk6MKZ0+k4WJGAUX8tWS2esO5VGPFvUV6R0zsQefhvSoGXVOPw==
+releaseDate: '2026-08-26T12:20:43.723Z'
 releaseNotes: |-
-  Add a script for the periodic update-history trim
+  Pre-publish security/correctness audit fixes
 
-  Documents and automates the git-filter-repo dance used to shrink .git
-  back down (each release adds ~150-250MB of binaries under updates/
-  that never get cleaned up otherwise). The final force-push is left to
-  the user to run themselves — Claude Code won't run that unattended.
+  A full-repo audit before opening this up more widely turned up two
+  serious gaps and a handful of smaller ones. Fixed here:
+
+  - CRITICAL: the LAN transfer server never actually checked
+    isLanDeviceApproved() — a missing/unrecognized requesterId silently
+    fell back to a shared folder's own (often wide-open by default)
+    permissions instead of being denied. Any device on the same
+    network, Beamzy or not, approved or rejected, could list/download
+    shared folders with zero pairing. The approval modal was cosmetic.
+    Now denies outright unless requesterId is both present and
+    approved.
+
+  - HIGH: the relay bound `deviceId` straight from client-supplied
+    connection params with nothing backing it, so anyone who'd ever
+    seen a device's id (routinely shared to its approved links via
+    presence) could reconnect claiming to *be* that device and hijack
+    its identity toward its other links. Now pins each deviceId to the
+    code it first proved ownership of — codes are never shared with
+    other devices, so impersonating a deviceId now also requires
+    knowing its matching code.
+
+  - Folder-drop zipping (adm-zip, synchronous + fully memory-buffered)
+    would freeze the whole app and spike memory on a large folder.
+    Replaced with archiver, which streams both the read and the
+    compression.
+
+  - Neither transport capped incoming bytes against the sender's own
+    declared size — an already-permitted peer could still stream past
+    it and fill disk. Both now cut off and discard the partial file if
+    that happens.
+
+  - Progress events fired uncapped per network chunk (LAN can easily
+    hit thousands/sec on a big file), each forcing an IPC round-trip
+    and React re-render — throttled to a fixed rate per transfer,
+    always letting the terminal done/error event through immediately.
+
+  - Relay request/response correlation (list/targets) only checked a
+    random requestId, not that the reply actually came from the peer it
+    was sent to. Low risk (122-bit UUID) but cheap to close.
+
+  - Settings modal now syncs relay changes into the parent's config on
+    Cancel too, since those persist immediately regardless of Save —
+    previously the renderer's cached copy could go stale until restart.
+
+  - Renderer's AppConfig type was still missing devicePermissions,
+    which main's real config has always returned.
