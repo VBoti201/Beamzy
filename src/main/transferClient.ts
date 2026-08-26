@@ -149,13 +149,13 @@ export function pullFile(
   })
 }
 
-export function notifyHistoryDelete(host: string, port: number, transferId: string): void {
+export function notifyHistoryDelete(host: string, port: number, transferId: string, requesterId: string): void {
   // Best-effort — the peer may be offline right now, in which case there's
   // nothing more to do than let this fail silently.
   const req = http.request({
     host,
     port,
-    path: `/api/history-delete?transferId=${encodeURIComponent(transferId)}`,
+    path: `/api/history-delete?transferId=${encodeURIComponent(transferId)}&requesterId=${encodeURIComponent(requesterId)}`,
     method: 'POST'
   })
   req.on('error', () => {})

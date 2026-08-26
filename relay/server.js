@@ -124,16 +124,28 @@ const onlineByCode = new Map()
 // re-approval prompt after a redeploy).
 const approvedLinks = new Map()
 
-// deviceId -> the code it first proved ownership of. deviceId itself is
-// just a client-asserted string with nothing cryptographic backing it —
-// without this, anyone who learns a victim's deviceId (routinely shared to
-// their approved links via presence) could reconnect claiming to *be* that
-// deviceId and hijack their identity toward everyone linked to them. Since
-// a device's code is never shared with anyone else (presence only ever
-// includes deviceId/name/platform, never code), pinning a deviceId to
-// whichever code it showed up with first means impersonating it also
-// requires knowing that code — which an attacker who only saw the deviceId
-// never does. In-memory, same redeploy-resets trade-off as approvedLinks.
+// deviceId -> { code, lastSeenAt }, the code it first proved ownership of.
+// deviceId itself is just a client-asserted string with nothing
+// cryptographic backing it — without this, anyone who learns a victim's
+// deviceId (routinely shared to their approved links via presence) could
+// reconnect claiming to *be* that deviceId and hijack their identity toward
+// everyone linked to them. Since a device's code is never shared with anyone
+// else (presence only ever includes deviceId/name/platform, never code),
+// pinning a deviceId to whichever code it showed up with first means
+// impersonating it also requires knowing that code — which an attacker who
+// only saw the deviceId never does. In-memory, same redeploy-resets
+// trade-off as approvedLinks.
+//
+// The binding expires after DEVICE_BINDING_TTL_MS of inactivity: without
+// this, an attacker who learns a victim's deviceId (but not their code)
+// could squat it with their own code the moment the real device goes
+// offline, permanently locking the legitimate device out (its own
+// reconnects would all be rejected as "not associated with this code")
+// until the next relay redeploy wipes the map. Refreshing lastSeenAt on
+// every legitimate connect means an actively-used binding never goes stale
+// for the real owner, while a squatted-then-abandoned binding eventually
+// frees up.
+const DEVICE_BINDING_TTL_MS = 24 * 60 * 60 * 1000
 const deviceCodeBinding = new Map()
 
 // requestId -> { fromDeviceId, fromCorrelationId, toDeviceId, name, platform, timer }
@@ -422,12 +434,13 @@ wss.on('connection', (ws, req) => {
     return
   }
 
-  const boundCode = deviceCodeBinding.get(deviceId)
-  if (boundCode && boundCode !== code) {
+  const binding = deviceCodeBinding.get(deviceId)
+  const bindingStale = binding && Date.now() - binding.lastSeenAt > DEVICE_BINDING_TTL_MS
+  if (binding && binding.code !== code && !bindingStale) {
     ws.close(4001, 'that device id is not associated with this code')
     return
   }
-  if (!boundCode) deviceCodeBinding.set(deviceId, code)
+  deviceCodeBinding.set(deviceId, { code, lastSeenAt: Date.now() })
 
   onlineDevices.set(deviceId, { ws, code, name, platform })
   onlineByCode.set(code, deviceId)

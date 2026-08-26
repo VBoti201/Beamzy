@@ -67,6 +67,7 @@ interface PendingPull {
   fileName: string
   resolve: () => void
   reject: (e: Error) => void
+  expectedFrom: string
 }
 
 interface IncomingWrite {
@@ -404,6 +405,11 @@ export class RelayClient {
     const totalBytes = Number(payload.totalBytes || 0)
 
     const pull = this.pendingPulls.get(transferId)
+    // A transferId is only unique per-requester's own bookkeeping — without
+    // this check, any relay peer who guessed/observed a transferId in flight
+    // could race the real sender and redirect our pending pull to write
+    // attacker-controlled file content to disk.
+    if (pull && pull.expectedFrom !== from) return
     if (pull) {
       try {
         ensureDir(pull.destDirPath)
@@ -668,7 +674,7 @@ export class RelayClient {
   pullFile(peerId: string, folderId: string, remoteRelPath: string, destDirPath: string): Promise<void> {
     const transferId = randomUUID()
     return new Promise<void>((resolve, reject) => {
-      this.pendingPulls.set(transferId, { destDirPath, fileName: path.basename(remoteRelPath), resolve, reject })
+      this.pendingPulls.set(transferId, { destDirPath, fileName: path.basename(remoteRelPath), resolve, reject, expectedFrom: peerId })
       this.sendRelay(peerId, { kind: 'download-request', transferId, folderId, path: remoteRelPath })
       setTimeout(() => {
         // Only fires if the peer never even acknowledged the request

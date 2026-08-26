@@ -520,7 +520,7 @@ ipcMain.handle('history:remove', (_e, args: { id: string }) => {
     relayClient.notifyHistoryDelete(entry.peerId, entry.transferId)
   } else {
     const peer = currentPeers.find((p) => p.id === entry.peerId)
-    if (peer) notifyHistoryDelete(peer.host, peer.port, entry.transferId)
+    if (peer) notifyHistoryDelete(peer.host, peer.port, entry.transferId, getConfig().deviceId)
   }
   return getHistory()
 })

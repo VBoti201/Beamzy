@@ -189,6 +189,18 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
 
   function handleHistoryDelete(url: URL, res: http.ServerResponse, events: ServerEvents): void {
     const transferId = url.searchParams.get('transferId')
+    const requesterId = url.searchParams.get('requesterId') || ''
+    // This didn't check approval at all — any device on the network that
+    // knew (or previously legitimately received) a transferId could delete
+    // that history entry, and for a 'received' entry that means the actual
+    // file on disk (see applyHistoryDelete in index.ts). Same class of gap
+    // as the other endpoints, just not caught earlier since it doesn't
+    // hand back file contents.
+    if (!isLanDeviceApproved(requesterId)) {
+      res.writeHead(403)
+      res.end('forbidden')
+      return
+    }
     if (transferId) events.onHistoryDeleteRequest?.(transferId)
     res.writeHead(200)
     res.end('ok')
