@@ -16,13 +16,14 @@ import {
 } from './config'
 import { Discovery, PeerInfo } from './discovery'
 import { startTransferServer, cancelIncomingTransfer } from './transferServer'
-import { pushFile, pullFile, fetchJson, notifyHistoryDelete, cancelLanTransfer } from './transferClient'
+import { pushFile, pullFile, fetchJson, notifyHistoryDelete, sendLanPair, cancelLanTransfer } from './transferClient'
+import { buildLanAuthHeaders } from './lanAuth'
 import { getDrives, getPrimaryDiskSpace } from './drives'
 import { RelayClient } from './relayClient'
 import { startAutoUpdater, checkForUpdatesNow, installUpdateNow } from './updater'
 import { generateUniquePairingCode } from './constants'
 import { getHistory, addHistoryEntry, findHistoryEntryByTransferId, removeHistoryEntryByTransferId } from './history'
-import { isLanDeviceApproved, approveLanDevice, forgetLanDevice } from './lanTrust'
+import { isLanDeviceApproved, approveLanDevice, forgetLanDevice, ensureOutgoingSecret } from './lanTrust'
 import { needsRelayCodeMigration, markRelayCodeMigrated } from './migrations'
 import { zipDirectory } from './zip'
 
@@ -97,6 +98,22 @@ function refreshLanPeers(): void {
   }
   currentPeers = lastRawLanPeers.filter((p) => isLanDeviceApproved(p.id))
   sendToWindow('peers:update', currentPeers)
+}
+
+// A peer can only verify our requests if it has actually received the
+// secret we sign them with (see lanTrust.ts/lanAuth.ts) — sent once per
+// app session per peer so a first pairing (or a peer that lost its old
+// binding, e.g. across an upgrade from before this existed) self-heals the
+// next time we're about to talk to them, without any extra user action.
+const securedPeersThisSession = new Set<string>()
+
+async function ensurePairedWithPeer(peerId: string, host: string, port: number): Promise<string> {
+  const secret = ensureOutgoingSecret(peerId)
+  if (!securedPeersThisSession.has(peerId)) {
+    securedPeersThisSession.add(peerId)
+    await sendLanPair(host, port, getConfig().deviceId, secret)
+  }
+  return secret
 }
 
 // mainWindow can be non-null but already destroyed during app quit (e.g.
@@ -434,29 +451,44 @@ ipcMain.handle('dialog:pickFiles', async () => {
 
 ipcMain.handle('peers:get', () => currentPeers)
 
-ipcMain.handle('remote:list', (_e, args: { host: string; port: number; folderId: string | null; path: string }) => {
-  const params = new URLSearchParams({ requesterId: getConfig().deviceId })
+ipcMain.handle('remote:list', async (_e, args: { host: string; port: number; folderId: string | null; path: string }) => {
+  const peerId = currentPeers.find((p) => p.host === args.host && p.port === args.port)?.id || args.host
+  const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
+  const params = new URLSearchParams()
   if (args.folderId) {
     params.set('folderId', args.folderId)
     params.set('path', args.path || '')
   }
-  return fetchJson(args.host, args.port, `/api/list?${params.toString()}`)
+  const qs = params.toString()
+  const reqPath = qs ? `/api/list?${qs}` : '/api/list'
+  return fetchJson(args.host, args.port, reqPath, buildLanAuthHeaders(getConfig().deviceId, secret, 'GET', '/api/list'))
 })
 
-ipcMain.handle('remote:targets', (_e, args: { host: string; port: number }) =>
-  fetchJson(args.host, args.port, `/api/targets?requesterId=${encodeURIComponent(getConfig().deviceId)}`)
-)
+ipcMain.handle('remote:targets', async (_e, args: { host: string; port: number }) => {
+  const peerId = currentPeers.find((p) => p.host === args.host && p.port === args.port)?.id || args.host
+  const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
+  return fetchJson(args.host, args.port, '/api/targets', buildLanAuthHeaders(getConfig().deviceId, secret, 'GET', '/api/targets'))
+})
 
 ipcMain.handle(
   'transfer:push',
   async (_e, args: { host: string; port: number; folderId: string; destRelPath: string; localFilePaths: string[] }) => {
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
     const peerId = peer?.id || args.host
+    const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
     for (const filePath of args.localFilePaths) {
       const transferId = randomUUID()
       try {
-        await pushFile(args.host, args.port, args.folderId, args.destRelPath || '', filePath, transferId, getConfig().deviceId, (p) =>
-          sendProgress({ ...p, peerId })
+        await pushFile(
+          args.host,
+          args.port,
+          args.folderId,
+          args.destRelPath || '',
+          filePath,
+          transferId,
+          getConfig().deviceId,
+          secret,
+          (p) => sendProgress({ ...p, peerId })
         )
         recordHistory({
           transferId,
@@ -493,8 +525,17 @@ ipcMain.handle(
     const transferId = randomUUID()
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
     const peerId = peer?.id || args.host
-    const result = await pullFile(args.host, args.port, args.folderId, args.remoteRelPath, destFolder.path, transferId, cfg.deviceId, (p) =>
-      sendProgress({ ...p, peerId })
+    const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
+    const result = await pullFile(
+      args.host,
+      args.port,
+      args.folderId,
+      args.remoteRelPath,
+      destFolder.path,
+      transferId,
+      cfg.deviceId,
+      secret,
+      (p) => sendProgress({ ...p, peerId })
     )
     recordHistory({
       transferId,
@@ -512,7 +553,7 @@ ipcMain.handle(
 
 ipcMain.handle('history:get', () => getHistory())
 
-ipcMain.handle('history:remove', (_e, args: { id: string }) => {
+ipcMain.handle('history:remove', async (_e, args: { id: string }) => {
   const entry = getHistory().find((e) => e.id === args.id)
   if (!entry) return getHistory()
   applyHistoryDelete(entry.transferId)
@@ -520,7 +561,10 @@ ipcMain.handle('history:remove', (_e, args: { id: string }) => {
     relayClient.notifyHistoryDelete(entry.peerId, entry.transferId)
   } else {
     const peer = currentPeers.find((p) => p.id === entry.peerId)
-    if (peer) notifyHistoryDelete(peer.host, peer.port, entry.transferId, getConfig().deviceId)
+    if (peer) {
+      const secret = await ensurePairedWithPeer(peer.id, peer.host, peer.port)
+      notifyHistoryDelete(peer.host, peer.port, entry.transferId, getConfig().deviceId, secret)
+    }
   }
   return getHistory()
 })

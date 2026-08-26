@@ -2,7 +2,8 @@ import http from 'http'
 import fs from 'fs'
 import path from 'path'
 import { getConfig, effectivePermission } from './config'
-import { isLanDeviceApproved } from './lanTrust'
+import { isLanDeviceApproved, getIncomingSecret, bindIncomingSecret } from './lanTrust'
+import { verifyLanAuth } from './lanAuth'
 
 export interface IncomingProgressEvent {
   direction: 'up'
@@ -55,14 +56,23 @@ function ensureDir(dir: string): void {
 // which meant any unauthenticated client on the network could hit these
 // endpoints directly without ever going through the pairing-approval modal.
 // isLanDeviceApproved is the actual gate; effectivePermission only resolves
-// *which* permissions an already-approved device has.
+// *which* permissions an already-approved device has. requesterId here is
+// always the result of authenticate() below — never taken raw off the
+// request — so it's already proven, not just asserted.
 function permissionFor(
   cfg: ReturnType<typeof getConfig>,
-  requesterId: string,
+  requesterId: string | null,
   folderId: string
 ): { allowBrowse: boolean; allowUpload: boolean; allowDownload: boolean } | null {
   if (!requesterId || !isLanDeviceApproved(requesterId)) return null
   return effectivePermission(cfg, requesterId, folderId)
+}
+
+// Verifies the request actually proves possession of the secret bound to
+// the deviceId it claims — the claim alone (e.g. a requesterId query
+// param) is worthless since deviceId is broadcast in cleartext over mDNS.
+function authenticate(req: http.IncomingMessage, url: URL): string | null {
+  return verifyLanAuth(req.headers, req.method || 'GET', url.pathname, getIncomingSecret)
 }
 
 interface ActiveIncoming {
@@ -102,11 +112,12 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
       const url = new URL(req.url || '', 'http://localhost')
       res.setHeader('Access-Control-Allow-Origin', '*')
 
-      if (url.pathname === '/api/list' && req.method === 'GET') return handleList(url, res)
-      if (url.pathname === '/api/targets' && req.method === 'GET') return handleTargets(url, res)
-      if (url.pathname === '/api/download' && req.method === 'GET') return handleDownload(url, res)
+      if (url.pathname === '/api/lan-pair' && req.method === 'POST') return handleLanPair(req, res)
+      if (url.pathname === '/api/list' && req.method === 'GET') return handleList(url, req, res)
+      if (url.pathname === '/api/targets' && req.method === 'GET') return handleTargets(url, req, res)
+      if (url.pathname === '/api/download' && req.method === 'GET') return handleDownload(url, req, res)
       if (url.pathname === '/api/upload' && req.method === 'POST') return handleUpload(url, req, res, events)
-      if (url.pathname === '/api/history-delete' && req.method === 'POST') return handleHistoryDelete(url, res, events)
+      if (url.pathname === '/api/history-delete' && req.method === 'POST') return handleHistoryDelete(url, req, res, events)
 
       res.writeHead(404)
       res.end('not found')
@@ -116,10 +127,10 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     }
   })
 
-  function handleList(url: URL, res: http.ServerResponse): void {
+  function handleList(url: URL, req: http.IncomingMessage, res: http.ServerResponse): void {
     const folderId = url.searchParams.get('folderId')
     const relPath = url.searchParams.get('path') || ''
-    const requesterId = url.searchParams.get('requesterId') || ''
+    const requesterId = authenticate(req, url)
     const cfg = getConfig()
 
     if (!folderId) {
@@ -156,8 +167,8 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     res.end(JSON.stringify(list))
   }
 
-  function handleTargets(url: URL, res: http.ServerResponse): void {
-    const requesterId = url.searchParams.get('requesterId') || ''
+  function handleTargets(url: URL, req: http.IncomingMessage, res: http.ServerResponse): void {
+    const requesterId = authenticate(req, url)
     const cfg = getConfig()
     const targets = cfg.sharedFolders
       .filter((f) => permissionFor(cfg, requesterId, f.id)?.allowUpload)
@@ -166,10 +177,10 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     res.end(JSON.stringify(targets))
   }
 
-  function handleDownload(url: URL, res: http.ServerResponse): void {
+  function handleDownload(url: URL, req: http.IncomingMessage, res: http.ServerResponse): void {
     const folderId = url.searchParams.get('folderId')
     const relPath = url.searchParams.get('path') || ''
-    const requesterId = url.searchParams.get('requesterId') || ''
+    const requesterId = authenticate(req, url)
     const cfg = getConfig()
     const folder = cfg.sharedFolders.find((f) => f.id === folderId)
     if (!folder || !permissionFor(cfg, requesterId, folderId || '')?.allowDownload) {
@@ -187,16 +198,16 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     fs.createReadStream(target).pipe(res)
   }
 
-  function handleHistoryDelete(url: URL, res: http.ServerResponse, events: ServerEvents): void {
+  function handleHistoryDelete(url: URL, req: http.IncomingMessage, res: http.ServerResponse, events: ServerEvents): void {
     const transferId = url.searchParams.get('transferId')
-    const requesterId = url.searchParams.get('requesterId') || ''
+    const requesterId = authenticate(req, url)
     // This didn't check approval at all — any device on the network that
     // knew (or previously legitimately received) a transferId could delete
     // that history entry, and for a 'received' entry that means the actual
     // file on disk (see applyHistoryDelete in index.ts). Same class of gap
     // as the other endpoints, just not caught earlier since it doesn't
     // hand back file contents.
-    if (!isLanDeviceApproved(requesterId)) {
+    if (!requesterId || !isLanDeviceApproved(requesterId)) {
       res.writeHead(403)
       res.end('forbidden')
       return
@@ -204,6 +215,65 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     if (transferId) events.onHistoryDeleteRequest?.(transferId)
     res.writeHead(200)
     res.end('ok')
+  }
+
+  // Bootstraps trust: when a device approves a newly-discovered peer, it
+  // generates a random secret and POSTs it here so the peer can verify
+  // future requests claiming to be that device (see lanTrust.ts/lanAuth.ts).
+  // Necessarily unauthenticated — it's the trust root, not something built
+  // on top of one — so it's rate-limited per IP and the payload is capped
+  // and format-checked to keep it from being useful as anything but a
+  // legitimate 32-byte secret handoff.
+  const lanPairAttempts = new Map<string, number[]>()
+  const LAN_PAIR_WINDOW_MS = 60 * 1000
+  const LAN_PAIR_MAX_ATTEMPTS = 20
+
+  function lanPairRateLimited(ip: string): boolean {
+    const now = Date.now()
+    const attempts = (lanPairAttempts.get(ip) || []).filter((t) => now - t < LAN_PAIR_WINDOW_MS)
+    attempts.push(now)
+    lanPairAttempts.set(ip, attempts)
+    return attempts.length > LAN_PAIR_MAX_ATTEMPTS
+  }
+
+  function handleLanPair(req: http.IncomingMessage, res: http.ServerResponse): void {
+    const ip = req.socket.remoteAddress || ''
+    if (lanPairRateLimited(ip)) {
+      res.writeHead(429)
+      res.end('rate limited')
+      return
+    }
+    let body = ''
+    let tooBig = false
+    req.on('data', (chunk: Buffer) => {
+      body += chunk.toString('utf8')
+      if (body.length > 2048) {
+        tooBig = true
+        req.destroy()
+      }
+    })
+    req.on('end', () => {
+      if (tooBig) return
+      try {
+        const payload = JSON.parse(body) as { deviceId?: unknown; secret?: unknown }
+        const deviceId = String(payload.deviceId || '')
+        const secret = String(payload.secret || '')
+        // randomBytes(32).toString('base64') is always exactly this shape —
+        // reject anything else outright rather than bind garbage as if it
+        // were a real secret.
+        if (!deviceId || !/^[A-Za-z0-9+/]{43}=$/.test(secret)) {
+          res.writeHead(400)
+          res.end('bad request')
+          return
+        }
+        bindIncomingSecret(deviceId, secret)
+        res.writeHead(200)
+        res.end('ok')
+      } catch {
+        res.writeHead(400)
+        res.end('bad request')
+      }
+    })
   }
 
   function handleUpload(
@@ -216,7 +286,7 @@ export function startTransferServer(events: ServerEvents = {}): Promise<{ port: 
     const relPath = url.searchParams.get('path') || ''
     const fileName = decodeURIComponent(url.searchParams.get('fileName') || 'file')
     const transferId = url.searchParams.get('transferId') || ''
-    const requesterId = url.searchParams.get('requesterId') || ''
+    const requesterId = authenticate(req, url)
     const totalBytes = Number(req.headers['content-length'] || 0)
     const cfg = getConfig()
     const folder = cfg.sharedFolders.find((f) => f.id === folderId)
