@@ -1,16 +1,19 @@
-version: 0.1.58
+version: 0.1.59
 files:
-  - url: Beamzy Setup 0.1.58.exe
+  - url: Beamzy Setup 0.1.59.exe
     sha512: >-
-      YOHIYMtTizberRVySSJwjJUeO1+Tyf18fWKjKC8IOXqzMl93pWq7DolhD/x8uRgDVXgJm1NHviUkzu2Ha2esSQ==
-    size: 79226339
-path: Beamzy Setup 0.1.58.exe
+      6vg3zETQ3xtBS4SygacNPV6n/wlXDTvUu4Xz2J6CiEsmESCYiqiHHEc4oRaIOjH028WSIyBr/3Re9nt3PjC/ZA==
+    size: 79868921
+path: Beamzy Setup 0.1.59.exe
 sha512: >-
-  YOHIYMtTizberRVySSJwjJUeO1+Tyf18fWKjKC8IOXqzMl93pWq7DolhD/x8uRgDVXgJm1NHviUkzu2Ha2esSQ==
-releaseDate: '2026-08-26T21:01:53.771Z'
+  6vg3zETQ3xtBS4SygacNPV6n/wlXDTvUu4Xz2J6CiEsmESCYiqiHHEc4oRaIOjH028WSIyBr/3Re9nt3PjC/ZA==
+releaseDate: '2026-08-26T21:19:06.546Z'
 releaseNotes: |-
-  Auto-expire transfer history entries after 3 days
+  Fix app icon looking oversized next to native macOS apps
 
-  Recent activity no longer accumulates indefinitely (bounded only by the
-  200-entry cap before this) — anything older than 3 days is pruned the
-  next time the list is read or added to.
+  The icon's rounded-square shape filled the entire canvas edge to edge;
+  Apple's own apps leave the shape at roughly 80% of the canvas so it reads
+  at the same visual size as everything else in the Dock and Finder.
+  Rescaled both the dark and light variants down with transparent padding
+  and rebuilt icon.icns from the corrected artwork — no other change to
+  the design itself.
