@@ -1,15 +1,20 @@
-version: 0.1.57
+version: 0.1.58
 files:
-  - url: Beamzy-0.1.57-arm64-mac.zip
+  - url: Beamzy-0.1.58-arm64-mac.zip
     sha512: >-
-      VrynwNz4CO4Xmaw9kS2dZ9WULR3rt5haYNlnEz0fPkv5E8I7IYWTYPDjHktqmxO1GEmrQOMULuwzY0bX0/lHQA==
-    size: 96856153
-  - url: Beamzy-0.1.57-arm64.dmg
+      NDdBl23ZCG5/VbpJz3a2O48BDk3wyjpIGra7gGIlKr3YgMJpJmuj8KQMeiV0anKtBrSnKE60hbXXxvmQAD5xDA==
+    size: 96856176
+  - url: Beamzy-0.1.58-arm64.dmg
     sha512: >-
-      GqEwMmVNHoyHfXFqgRQo9mWIWVNrVeyH4ra5Q+B4E0KGwXTYRuwR42iGocsG1WUcjBXHs4s9PaXoLTvpfSdqjw==
-    size: 100489869
-path: Beamzy-0.1.57-arm64-mac.zip
+      RDsRQX0Au2lBURxC0ER2PH2QrPN7Gux6nmwQLqiqC0WSp19R/++D1OKVjIax130Z/tj5JW9NaZvpG49BZy5mjw==
+    size: 100496589
+path: Beamzy-0.1.58-arm64-mac.zip
 sha512: >-
-  VrynwNz4CO4Xmaw9kS2dZ9WULR3rt5haYNlnEz0fPkv5E8I7IYWTYPDjHktqmxO1GEmrQOMULuwzY0bX0/lHQA==
-releaseDate: '2026-08-26T16:38:32.197Z'
-releaseNotes: Publish Windows update feed for 0.1.57 [skip ci]
+  NDdBl23ZCG5/VbpJz3a2O48BDk3wyjpIGra7gGIlKr3YgMJpJmuj8KQMeiV0anKtBrSnKE60hbXXxvmQAD5xDA==
+releaseDate: '2026-08-26T21:01:05.026Z'
+releaseNotes: |-
+  Auto-expire transfer history entries after 3 days
+
+  Recent activity no longer accumulates indefinitely (bounded only by the
+  200-entry cap before this) — anything older than 3 days is pruned the
+  next time the list is read or added to.
