@@ -2,36 +2,14 @@ version: 0.1.57
 files:
   - url: Beamzy-0.1.57-arm64-mac.zip
     sha512: >-
-      4KBa51DsEBIZeQDDr+YJAlTr+filZ1qhqOf7VWLh8jwpgwvE39q6ojDbGe/jqkPw+XQJpR7koZ4nllVcf/8T3g==
+      VrynwNz4CO4Xmaw9kS2dZ9WULR3rt5haYNlnEz0fPkv5E8I7IYWTYPDjHktqmxO1GEmrQOMULuwzY0bX0/lHQA==
     size: 96856153
   - url: Beamzy-0.1.57-arm64.dmg
     sha512: >-
-      JND5BioKmtWYbGZ8j0ZTYuB2Hwl9IPdUnTUV7iHpWoktrGH91UgAX76aJjSu3mhY6y7Fvmr3EoRWH0BBxZ+sYg==
-    size: 100490182
+      GqEwMmVNHoyHfXFqgRQo9mWIWVNrVeyH4ra5Q+B4E0KGwXTYRuwR42iGocsG1WUcjBXHs4s9PaXoLTvpfSdqjw==
+    size: 100489869
 path: Beamzy-0.1.57-arm64-mac.zip
 sha512: >-
-  4KBa51DsEBIZeQDDr+YJAlTr+filZ1qhqOf7VWLh8jwpgwvE39q6ojDbGe/jqkPw+XQJpR7koZ4nllVcf/8T3g==
-releaseDate: '2026-08-26T16:23:30.613Z'
-releaseNotes: |-
-  Require code-pairing for LAN too, with automatic LAN/relay transport selection
-
-  Previously, any device broadcasting on the LAN via mDNS would prompt a
-  local "allow this device?" click with no code involved — convenient, but
-  it meant trust was granted based purely on network presence rather than
-  proving you actually know the other device. Now the relay's code-based
-  pairing is the single trust root for both transports: approving a device
-  there (approvedLinks becoming visible via relay presence) is what marks
-  it trusted, and if that same device also happens to be reachable on the
-  local network, the LAN fast path lights up automatically — no separate
-  LAN-specific approval step anymore.
-
-  Every list/push/pull/targets call now probes LAN reachability (a fast,
-  short-timeout request) before using it, transparently falling back to the
-  relay if the peer is also reachable there — so a peer that's technically
-  on the same network but behind a slow or flaky link doesn't make a
-  transfer sit there failing when the relay would just work.
-
-  Disconnecting a device (the trash icon) now always revokes both sides at
-  once (the relay link and any local LAN secret/approval) regardless of
-  which transport happened to be displaying it, since the relay link is now
-  the actual source of truth.
+  VrynwNz4CO4Xmaw9kS2dZ9WULR3rt5haYNlnEz0fPkv5E8I7IYWTYPDjHktqmxO1GEmrQOMULuwzY0bX0/lHQA==
+releaseDate: '2026-08-26T16:38:32.197Z'
+releaseNotes: Publish Windows update feed for 0.1.57 [skip ci]
