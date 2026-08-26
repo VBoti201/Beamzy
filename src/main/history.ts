@@ -16,19 +16,31 @@ export interface HistoryEntry {
 }
 
 const MAX_ENTRIES = 200
+const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000
 
 const store = new Store<{ entries: HistoryEntry[] }>({
   name: 'history',
   defaults: { entries: [] }
 })
 
+// Prunes on every read/write rather than on a timer — simpler, and the
+// list only needs to be accurate when something actually looks at it or
+// adds to it, not continuously while the app sits idle.
+function loadPruned(): HistoryEntry[] {
+  const entries = store.get('entries')
+  const cutoff = Date.now() - MAX_AGE_MS
+  const pruned = entries.filter((e) => e.timestamp >= cutoff)
+  if (pruned.length !== entries.length) store.set('entries', pruned)
+  return pruned
+}
+
 export function getHistory(): HistoryEntry[] {
-  return store.get('entries')
+  return loadPruned()
 }
 
 export function addHistoryEntry(entry: Omit<HistoryEntry, 'id' | 'timestamp'>): HistoryEntry[] {
   const full: HistoryEntry = { ...entry, id: randomUUID(), timestamp: Date.now() }
-  const entries = [full, ...store.get('entries')].slice(0, MAX_ENTRIES)
+  const entries = [full, ...loadPruned()].slice(0, MAX_ENTRIES)
   store.set('entries', entries)
   return entries
 }
