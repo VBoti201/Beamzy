@@ -23,6 +23,7 @@ const http = require('http')
 const fs = require('fs')
 const path = require('path')
 const { randomUUID } = require('crypto')
+const RELAY_VERSION = require('./package.json').version
 const { WebSocketServer } = require('ws')
 
 const UPDATE_FEED_HOST = 'https://swiftsend-1.onrender.com'
@@ -400,7 +401,7 @@ const httpServer = http.createServer(async (req, res) => {
     return
   }
   res.writeHead(200, { 'Content-Type': 'text/plain' })
-  res.end('Beamzy relay OK\n')
+  res.end(`Beamzy relay OK (v${RELAY_VERSION})\n`)
 })
 
 const wss = new WebSocketServer({ server: httpServer, maxPayload: MAX_PAYLOAD, path: '/ws' })
