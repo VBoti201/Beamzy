@@ -27,54 +27,18 @@ const { WebSocketServer } = require('ws')
 
 const UPDATE_FEED_HOST = 'https://swiftsend-1.onrender.com'
 const COUNTS_FILE = path.join(__dirname, 'download-counts.json')
-const REDIS_URL = process.env.REDIS_URL || ''
 
-// Best-effort landing-page download counter. If REDIS_URL is set (a Render
-// Key Value instance, or any Redis), counts persist there — that's the only
-// storage that actually survives a relay redeploy, since Render's own disk
-// doesn't. Without it, falls back to a local file, which is fine across a
-// plain restart but resets on every redeploy. Not meant to be exact, just a
-// rough "people have actually grabbed this" number either way.
+// Best-effort landing-page download counter. In-memory, persisted to a
+// local file so a plain process restart doesn't lose it — a full redeploy
+// still resets it (Render's disk isn't durable across those). Not meant to
+// be exact, just a rough "people have actually grabbed this" number.
 let downloadCounts = { mac: 0, win: 0 }
-let redisClient = null
-if (REDIS_URL) {
-  const { createClient } = require('redis')
-  // reconnectStrategy: false means a bad/unreachable URL fails fast instead
-  // of retrying forever — without this, a broken REDIS_URL would hang the
-  // whole relay on startup (connect() never settles), which is worse than
-  // just falling back to the local file.
-  redisClient = createClient({ url: REDIS_URL, socket: { reconnectStrategy: false, connectTimeout: 3000 } })
-  redisClient.on('error', (err) => console.error('[redis] connection error:', err.message))
+try {
+  downloadCounts = { ...downloadCounts, ...JSON.parse(fs.readFileSync(COUNTS_FILE, 'utf8')) }
+} catch {
+  // no file yet, or unreadable — start from zero
 }
-
-async function loadCounts() {
-  if (redisClient) {
-    try {
-      await redisClient.connect()
-      const stored = await redisClient.hGetAll('download-counts')
-      downloadCounts.mac = parseInt(stored.mac, 10) || 0
-      downloadCounts.win = parseInt(stored.win, 10) || 0
-      return
-    } catch (err) {
-      console.error('[redis] failed to load counts, falling back to local file:', err.message)
-    }
-  }
-  try {
-    downloadCounts = { ...downloadCounts, ...JSON.parse(fs.readFileSync(COUNTS_FILE, 'utf8')) }
-  } catch {
-    // no file yet, or unreadable — start from zero
-  }
-}
-
-async function saveCounts() {
-  if (redisClient && redisClient.isOpen) {
-    try {
-      await redisClient.hSet('download-counts', { mac: String(downloadCounts.mac), win: String(downloadCounts.win) })
-      return
-    } catch (err) {
-      console.error('[redis] failed to save counts:', err.message)
-    }
-  }
+function saveCounts() {
   try {
     fs.writeFileSync(COUNTS_FILE, JSON.stringify(downloadCounts))
   } catch {
@@ -501,8 +465,6 @@ wss.on('connection', (ws, req) => {
   })
 })
 
-loadCounts().finally(() => {
-  httpServer.listen(PORT, () => {
-    console.log(`Beamzy relay listening on :${PORT}`)
-  })
+httpServer.listen(PORT, () => {
+  console.log(`Beamzy relay listening on :${PORT}`)
 })

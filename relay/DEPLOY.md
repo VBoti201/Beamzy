@@ -71,9 +71,3 @@ curl -s https://relay.yourdomain.com/   # -> "Beamzy relay OK"
 ```
 
 Then in the Beamzy app (on both your machines, Settings > Remote access), enter the `wss://relay.yourdomain.com` address and the pairing code.
-
-## Landing page download counter (optional)
-
-The relay also tracks how many times the landing page's download buttons were used, for the little counter shown on the site. Without any extra setup this is stored in a local file (`download-counts.json`) next to `server.js` — that survives a plain process restart but **resets to zero on every redeploy**, since the relay's disk isn't durable across those.
-
-To make it actually persistent, set a `REDIS_URL` environment variable pointing at any Redis-compatible instance (e.g. a Render "Key Value" service, which has a free tier) — the counter then survives redeploys too. If `REDIS_URL` is unset, or the instance is unreachable, the relay falls back to the local file automatically (it never blocks startup waiting on Redis).
