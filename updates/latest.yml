@@ -1,27 +1,33 @@
-version: 0.1.56
+version: 0.1.57
 files:
-  - url: Beamzy Setup 0.1.56.exe
+  - url: Beamzy Setup 0.1.57.exe
     sha512: >-
-      XpwnYBts+aDoBo5zFwotVy6AUhdxB5M1L+B0xEDbwDB7jNjkTJbl/fpi10PA7+nM504d/OVfQGZxjzUqTSAXMA==
-    size: 79226248
-path: Beamzy Setup 0.1.56.exe
+      9x4T3GNOgEtt1NOd6Mp4jj8Vfl/9AZ2B/TDg43BYFIc3e8cfXY3KK+P9uJDgu6gGUBlKyVGAdrCai2EA8gP9PA==
+    size: 79226744
+path: Beamzy Setup 0.1.57.exe
 sha512: >-
-  XpwnYBts+aDoBo5zFwotVy6AUhdxB5M1L+B0xEDbwDB7jNjkTJbl/fpi10PA7+nM504d/OVfQGZxjzUqTSAXMA==
-releaseDate: '2026-08-26T14:14:34.680Z'
+  9x4T3GNOgEtt1NOd6Mp4jj8Vfl/9AZ2B/TDg43BYFIc3e8cfXY3KK+P9uJDgu6gGUBlKyVGAdrCai2EA8gP9PA==
+releaseDate: '2026-08-26T16:24:04.805Z'
 releaseNotes: |-
-  Fix app failing to launch at all since 0.1.53 (ERR_REQUIRE_ESM on archiver)
+  Require code-pairing for LAN too, with automatic LAN/relay transport selection
 
-  archiver ships as an ESM-only package (package.json "type": "module", no
-  CJS entry). The main process bundle is CommonJS, so the top-level import
-  of archiver compiled to a plain require() that threw ERR_REQUIRE_ESM the
-  instant the app started, before any window was ever created — on every
-  platform, not just some. This had been silently shipping broken since
-  0.1.53 introduced the archiver-based zip rewrite; a running process and a
-  clean log aren't enough to confirm a launch actually worked, only an
-  actual rendered window is.
+  Previously, any device broadcasting on the LAN via mDNS would prompt a
+  local "allow this device?" click with no code involved — convenient, but
+  it meant trust was granted based purely on network presence rather than
+  proving you actually know the other device. Now the relay's code-based
+  pairing is the single trust root for both transports: approving a device
+  there (approvedLinks becoming visible via relay presence) is what marks
+  it trusted, and if that same device also happens to be reachable on the
+  local network, the LAN fast path lights up automatically — no separate
+  LAN-specific approval step anymore.
 
-  Fixed by loading archiver via a dynamic import() inside zipDirectory()
-  instead of a static top-level import — dynamic import() can load an ESM
-  module from a CommonJS caller where require() cannot, and doing it lazily
-  inside the function means it only runs when a folder actually needs
-  zipping, not on every app launch.
+  Every list/push/pull/targets call now probes LAN reachability (a fast,
+  short-timeout request) before using it, transparently falling back to the
+  relay if the peer is also reachable there — so a peer that's technically
+  on the same network but behind a slow or flaky link doesn't make a
+  transfer sit there failing when the relay would just work.
+
+  Disconnecting a device (the trash icon) now always revokes both sides at
+  once (the relay link and any local LAN secret/approval) regardless of
+  which transport happened to be displaying it, since the relay link is now
+  the actual source of truth.
