@@ -1,22 +1,26 @@
-version: 0.1.54
+version: 0.1.55
 files:
-  - url: Beamzy Setup 0.1.54.exe
+  - url: Beamzy Setup 0.1.55.exe
     sha512: >-
-      BbcQmu5jtnrofXtXmYOlp9j08l0gt09CY8MLwCIA5FDHgNlcBNWwzPHaMsCOEHec3nrbw7hSHwOcc8EczMjotw==
-    size: 79224084
-path: Beamzy Setup 0.1.54.exe
+      udgq0CltxmxJ+TcFt7N9cYRQsB30CSyNitaidBvPk6zTj6AMGFmUYu8BJYUfTiRy3OPwBeeb01tXB4YedgBVng==
+    size: 79225616
+path: Beamzy Setup 0.1.55.exe
 sha512: >-
-  BbcQmu5jtnrofXtXmYOlp9j08l0gt09CY8MLwCIA5FDHgNlcBNWwzPHaMsCOEHec3nrbw7hSHwOcc8EczMjotw==
-releaseDate: '2026-08-26T13:00:32.156Z'
-releaseNotes: >-
-  Fix second-audit findings: history-delete auth, relay peer-spoof, code-binding
-  lockout
+  udgq0CltxmxJ+TcFt7N9cYRQsB30CSyNitaidBvPk6zTj6AMGFmUYu8BJYUfTiRy3OPwBeeb01tXB4YedgBVng==
+releaseDate: '2026-08-26T13:55:19.397Z'
+releaseNotes: |-
+  Replace LAN deviceId-as-credential with per-peer HMAC-signed requests
 
+  deviceId was broadcast in cleartext over mDNS, so it was never actually
+  secret — anyone on the same LAN could read a target's approved deviceId
+  and simply claim to be it in a requesterId query param, since that was
+  the only thing gating access to a device's shared folders. Every LAN
+  transfer-server request now instead has to prove possession of a random
+  per-peer secret exchanged out-of-band at approval time (new /api/lan-pair
+  endpoint, rate-limited and TOFU-bound), verified via a timestamped,
+  replay-protected HMAC signature (lanAuth.ts).
 
-  - history-delete endpoint now requires an approved LAN device, matching
-    the other transfer endpoints
-  - relay pulls now verify upload-start comes from the peer that was
-    actually asked, closing a transferId-guessing spoof window
-  - relay's deviceId-to-code binding now expires after 24h of inactivity
-    instead of being permanent, so an attacker who squats a victim's
-    deviceId can no longer lock them out until the next redeploy
+  Existing approved LAN pairs self-heal automatically the first time either
+  side talks to the other after both have updated — no manual re-pairing
+  needed. Both machines in a pair do need to be on this version or newer
+  before LAN transfers between them will work again.
