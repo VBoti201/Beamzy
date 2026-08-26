@@ -1,26 +1,27 @@
-version: 0.1.55
+version: 0.1.56
 files:
-  - url: Beamzy Setup 0.1.55.exe
+  - url: Beamzy Setup 0.1.56.exe
     sha512: >-
-      udgq0CltxmxJ+TcFt7N9cYRQsB30CSyNitaidBvPk6zTj6AMGFmUYu8BJYUfTiRy3OPwBeeb01tXB4YedgBVng==
-    size: 79225616
-path: Beamzy Setup 0.1.55.exe
+      XpwnYBts+aDoBo5zFwotVy6AUhdxB5M1L+B0xEDbwDB7jNjkTJbl/fpi10PA7+nM504d/OVfQGZxjzUqTSAXMA==
+    size: 79226248
+path: Beamzy Setup 0.1.56.exe
 sha512: >-
-  udgq0CltxmxJ+TcFt7N9cYRQsB30CSyNitaidBvPk6zTj6AMGFmUYu8BJYUfTiRy3OPwBeeb01tXB4YedgBVng==
-releaseDate: '2026-08-26T13:55:19.397Z'
+  XpwnYBts+aDoBo5zFwotVy6AUhdxB5M1L+B0xEDbwDB7jNjkTJbl/fpi10PA7+nM504d/OVfQGZxjzUqTSAXMA==
+releaseDate: '2026-08-26T14:14:34.680Z'
 releaseNotes: |-
-  Replace LAN deviceId-as-credential with per-peer HMAC-signed requests
+  Fix app failing to launch at all since 0.1.53 (ERR_REQUIRE_ESM on archiver)
 
-  deviceId was broadcast in cleartext over mDNS, so it was never actually
-  secret — anyone on the same LAN could read a target's approved deviceId
-  and simply claim to be it in a requesterId query param, since that was
-  the only thing gating access to a device's shared folders. Every LAN
-  transfer-server request now instead has to prove possession of a random
-  per-peer secret exchanged out-of-band at approval time (new /api/lan-pair
-  endpoint, rate-limited and TOFU-bound), verified via a timestamped,
-  replay-protected HMAC signature (lanAuth.ts).
+  archiver ships as an ESM-only package (package.json "type": "module", no
+  CJS entry). The main process bundle is CommonJS, so the top-level import
+  of archiver compiled to a plain require() that threw ERR_REQUIRE_ESM the
+  instant the app started, before any window was ever created — on every
+  platform, not just some. This had been silently shipping broken since
+  0.1.53 introduced the archiver-based zip rewrite; a running process and a
+  clean log aren't enough to confirm a launch actually worked, only an
+  actual rendered window is.
 
-  Existing approved LAN pairs self-heal automatically the first time either
-  side talks to the other after both have updated — no manual re-pairing
-  needed. Both machines in a pair do need to be on this version or newer
-  before LAN transfers between them will work again.
+  Fixed by loading archiver via a dynamic import() inside zipDirectory()
+  instead of a static top-level import — dynamic import() can load an ESM
+  module from a CommonJS caller where require() cannot, and doing it lazily
+  inside the function means it only runs when a folder actually needs
+  zipping, not on every app launch.
