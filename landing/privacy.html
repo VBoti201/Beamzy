@@ -85,6 +85,14 @@
   table { width: 100%; border-collapse: collapse; margin: 16px 0; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--card-border); font-size: 14px; color: var(--text-dim); }
   th { color: var(--text); font-weight: 700; }
+  @media (max-width: 600px) {
+    body { overflow-x: hidden; }
+    .wrap { padding: 0 16px 60px; }
+    .nav-shell { padding: 0 10px; }
+    nav { gap: 8px; padding: 8px 8px 8px 12px; }
+    nav a.theme-toggle { display: none; }
+    h1 { font-size: 26px; }
+  }
 </style>
 </head>
 <body>

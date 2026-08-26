@@ -54,6 +54,7 @@
     color: var(--text);
     -webkit-font-smoothing: antialiased;
     transition: background 0.2s ease, color 0.2s ease;
+    overflow-x: hidden;
   }
   .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
   a { color: inherit; }
@@ -424,13 +425,25 @@
   .legal-footer a:hover { color: var(--accent-2); }
 
   @media (max-width: 760px) {
+    .hero { padding: 64px 0 32px; }
     .hero h1 { font-size: 38px; }
     .hero h1 .hl { display: inline-block; margin-top: 4px; }
+    .hero p.sub { font-size: 16px; }
     .features { grid-template-columns: 1fr; }
     .steps-card { grid-template-columns: 1fr; padding: 28px; }
     .nav-link { display: none; }
     .mockup { flex-direction: column; }
     .m-sidebar { width: 100%; }
+    .section-head h2 { font-size: 26px; }
+  }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 0 16px; }
+    nav { gap: 8px; padding: 8px 8px 8px 12px; }
+    nav a.theme-toggle { display: none; }
+    .nav-cta-label { display: none; }
+    .nav-cta { padding: 9px 12px; }
+    .brand .word { font-size: 15px; }
   }
 </style>
 </head>
@@ -459,7 +472,7 @@
         <svg class="moon" viewBox="0 0 24 24" fill="none"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" fill="currentColor"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
-      <a class="nav-cta" href="about.html">🇭🇺 Made in Hungary</a>
+      <a class="nav-cta" href="about.html">🇭🇺 <span class="nav-cta-label">Made in Hungary</span></a>
     </nav>
   </div>
 

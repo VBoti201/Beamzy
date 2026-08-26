@@ -82,6 +82,14 @@
   ul { padding-left: 20px; }
   li { margin-bottom: 6px; }
   strong { color: var(--text); }
+  @media (max-width: 600px) {
+    body { overflow-x: hidden; }
+    .wrap { padding: 0 16px 60px; }
+    .nav-shell { padding: 0 10px; }
+    nav { gap: 8px; padding: 8px 8px 8px 12px; }
+    nav a.theme-toggle { display: none; }
+    h1 { font-size: 26px; }
+  }
 </style>
 </head>
 <body>
