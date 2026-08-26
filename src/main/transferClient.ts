@@ -197,6 +197,37 @@ export function sendLanPair(host: string, port: number, deviceId: string, secret
   })
 }
 
+// A cheap, read-only liveness/latency check used to decide whether LAN is
+// actually worth using right now versus falling back to the relay — a slow
+// or unreachable LAN path (different subnets bridged by something slow, a
+// flaky WiFi, a VPN confusing routing) shouldn't force a transfer to sit
+// there failing when the relay would just work.
+export function probeLan(host: string, port: number, deviceId: string, secret: string, timeoutMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (ok: boolean): void => {
+      if (settled) return
+      settled = true
+      resolve(ok)
+    }
+    const req = http.get(
+      {
+        host,
+        port,
+        path: '/api/targets',
+        timeout: timeoutMs,
+        headers: buildLanAuthHeaders(deviceId, secret, 'GET', '/api/targets')
+      },
+      (res) => {
+        res.resume()
+        finish(res.statusCode === 200)
+      }
+    )
+    req.on('timeout', () => req.destroy())
+    req.on('error', () => finish(false))
+  })
+}
+
 export function fetchJson<T>(host: string, port: number, pathAndQuery: string, headers?: Record<string, string>): Promise<T> {
   return new Promise((resolve, reject) => {
     http

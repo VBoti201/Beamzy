@@ -632,6 +632,13 @@ export class RelayClient {
     return !!this.ws && this.ws.readyState === WebSocket.OPEN
   }
 
+  // Whether this deviceId is currently in our last known relay presence —
+  // i.e. an approved link that's online right now, so a relay-path
+  // operation toward it would actually have somewhere to go.
+  hasPeer(deviceId: string): boolean {
+    return this.knownPeers.has(deviceId)
+  }
+
   getTargets(peerId: string): Promise<{ id: string; name: string }[]> {
     return this.request<{ targets: { id: string; name: string }[] }>(peerId, { kind: 'targets-request' }).then((r) => r.targets)
   }

@@ -74,9 +74,6 @@ declare global {
       relayApprovePairing: (args: { requestId: string }) => Promise<void>
       relayRejectPairing: (args: { requestId: string }) => Promise<void>
       relayKickDevice: (args: { deviceId: string }) => Promise<void>
-      lanApproveDevice: (args: { deviceId: string }) => Promise<void>
-      lanRejectDevice: (args: { deviceId: string }) => Promise<void>
-      lanForgetDevice: (args: { deviceId: string }) => Promise<void>
       onPairingRequest: (cb: (req: import('./types').PairingRequest) => void) => () => void
       onAppReady: (cb: (data: unknown) => void) => () => void
       onPeersUpdate: (cb: (peers: import('./types').LanPeer[]) => void) => () => void

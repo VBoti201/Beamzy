@@ -16,7 +16,7 @@ import {
 } from './config'
 import { Discovery, PeerInfo } from './discovery'
 import { startTransferServer, cancelIncomingTransfer } from './transferServer'
-import { pushFile, pullFile, fetchJson, notifyHistoryDelete, sendLanPair, cancelLanTransfer } from './transferClient'
+import { pushFile, pullFile, fetchJson, notifyHistoryDelete, sendLanPair, probeLan, cancelLanTransfer } from './transferClient'
 import { buildLanAuthHeaders } from './lanAuth'
 import { getDrives, getPrimaryDiskSpace } from './drives'
 import { RelayClient } from './relayClient'
@@ -82,20 +82,13 @@ let discovery: Discovery | null = null
 let currentPeers: PeerInfo[] = []
 let closeServer: (() => void) | null = null
 let lastRawLanPeers: PeerInfo[] = []
-const pendingLanApprovals = new Set<string>()
-const rejectedLanDevices = new Set<string>()
-
-// LAN peers don't need a pairing code (mDNS just finds them), but a never-
-// approved deviceId still shouldn't be usable until the user explicitly
-// accepts it — otherwise anyone else on the same WiFi/router running
-// Beamzy would show up with zero confirmation.
+// A device only ever becomes trusted by successfully code-pairing through
+// the relay (approveLanDevice is called from the relay client's onPeers
+// callback below, once) — mDNS presence alone no longer grants anything.
+// This just narrows the raw mDNS list down to devices that have already
+// earned that trust, so the LAN fast-path lights up automatically the
+// moment an already-paired device happens to be reachable on the network.
 function refreshLanPeers(): void {
-  for (const p of lastRawLanPeers) {
-    if (!isLanDeviceApproved(p.id) && !pendingLanApprovals.has(p.id) && !rejectedLanDevices.has(p.id)) {
-      pendingLanApprovals.add(p.id)
-      sendToWindow('relay:pairing-request', { requestId: p.id, deviceId: p.id, name: p.name, platform: p.platform, source: 'lan' })
-    }
-  }
   currentPeers = lastRawLanPeers.filter((p) => isLanDeviceApproved(p.id))
   sendToWindow('peers:update', currentPeers)
 }
@@ -114,6 +107,27 @@ async function ensurePairedWithPeer(peerId: string, host: string, port: number):
     await sendLanPair(host, port, getConfig().deviceId, secret)
   }
   return secret
+}
+
+// LAN vs relay is decided fresh for every operation rather than baked into
+// which button the user happened to click — a peer that's technically on
+// the same network but behind a slow/flaky link (different subnet bridged
+// by something slow, a confused VPN route) shouldn't make a transfer sit
+// there failing when the relay would just work. Falls back to relay only
+// if that peer is actually reachable there right now.
+const LAN_PROBE_TIMEOUT_MS = 1200
+
+type Transport = { kind: 'lan'; host: string; port: number; secret: string } | { kind: 'relay' }
+
+async function chooseTransport(peerId: string, host?: string, port?: number): Promise<Transport | null> {
+  if (host && port) {
+    const secret = await ensurePairedWithPeer(peerId, host, port)
+    if (await probeLan(host, port, getConfig().deviceId, secret, LAN_PROBE_TIMEOUT_MS)) {
+      return { kind: 'lan', host, port, secret }
+    }
+  }
+  if (relayClient.isConnected() && relayClient.hasPeer(peerId)) return { kind: 'relay' }
+  return host && port ? { kind: 'lan', host, port, secret: ensureOutgoingSecret(peerId) } : null
 }
 
 // mainWindow can be non-null but already destroyed during app quit (e.g.
@@ -167,11 +181,21 @@ function applyHistoryDelete(transferId: string): void {
 }
 
 const relayClient = new RelayClient({
-  onPeers: (peers) => sendToWindow('relay:peers-update', peers),
+  onPeers: (peers) => {
+    // A device only earns LAN trust by successfully code-pairing through
+    // the relay — a relay presence update naming a deviceId means exactly
+    // that just happened (the relay only lists mutually approved links,
+    // see approvedLinks in relay/server.js), so it's the right moment to
+    // also mark it trusted for the LAN fast-path if it's ever reachable
+    // there. approveLanDevice is a no-op once already approved.
+    for (const p of peers) approveLanDevice(p.deviceId)
+    refreshLanPeers()
+    sendToWindow('relay:peers-update', peers)
+  },
   onStatus: (status) => sendToWindow('relay:status-update', status),
   onProgress: (p) => sendProgress({ ...p }),
   onHistory: (e) => recordHistory({ ...e, transport: 'relay' }),
-  onPairingRequest: (req) => sendToWindow('relay:pairing-request', { ...req, source: 'relay' }),
+  onPairingRequest: (req) => sendToWindow('relay:pairing-request', req),
   onHistoryDeleteRequest: (transferId) => applyHistoryDelete(transferId)
 })
 
@@ -367,21 +391,13 @@ ipcMain.handle('relay:pairing-approve', (_e, args: { requestId: string }) => rel
 
 ipcMain.handle('relay:pairing-reject', (_e, args: { requestId: string }) => relayClient.rejectPairing(args.requestId))
 
-ipcMain.handle('relay:kick-device', (_e, args: { deviceId: string }) => relayClient.kickDevice(args.deviceId))
-
-ipcMain.handle('lan:approve-device', (_e, args: { deviceId: string }) => {
-  approveLanDevice(args.deviceId)
-  pendingLanApprovals.delete(args.deviceId)
-  refreshLanPeers()
-})
-
-ipcMain.handle('lan:reject-device', (_e, args: { deviceId: string }) => {
-  pendingLanApprovals.delete(args.deviceId)
-  rejectedLanDevices.add(args.deviceId)
-  refreshLanPeers()
-})
-
-ipcMain.handle('lan:forget-device', (_e, args: { deviceId: string }) => {
+// The only trust root now is the code-based relay pairing, so fully
+// disconnecting a device means dropping both sides of it: the relay link
+// itself (so it stops showing up there) and any local LAN secret/approval
+// (so it doesn't just get treated as trusted again if it's on the network)
+// — regardless of which transport happens to be showing it right now.
+ipcMain.handle('relay:kick-device', (_e, args: { deviceId: string }) => {
+  relayClient.kickDevice(args.deviceId)
   forgetLanDevice(args.deviceId)
   refreshLanPeers()
 })
@@ -453,7 +469,9 @@ ipcMain.handle('peers:get', () => currentPeers)
 
 ipcMain.handle('remote:list', async (_e, args: { host: string; port: number; folderId: string | null; path: string }) => {
   const peerId = currentPeers.find((p) => p.host === args.host && p.port === args.port)?.id || args.host
-  const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
+  const transport = await chooseTransport(peerId, args.host, args.port)
+  if (!transport) throw new Error('Device is not reachable')
+  if (transport.kind === 'relay') return relayClient.listFolder(peerId, args.folderId, args.path)
   const params = new URLSearchParams()
   if (args.folderId) {
     params.set('folderId', args.folderId)
@@ -461,13 +479,15 @@ ipcMain.handle('remote:list', async (_e, args: { host: string; port: number; fol
   }
   const qs = params.toString()
   const reqPath = qs ? `/api/list?${qs}` : '/api/list'
-  return fetchJson(args.host, args.port, reqPath, buildLanAuthHeaders(getConfig().deviceId, secret, 'GET', '/api/list'))
+  return fetchJson(transport.host, transport.port, reqPath, buildLanAuthHeaders(getConfig().deviceId, transport.secret, 'GET', '/api/list'))
 })
 
 ipcMain.handle('remote:targets', async (_e, args: { host: string; port: number }) => {
   const peerId = currentPeers.find((p) => p.host === args.host && p.port === args.port)?.id || args.host
-  const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
-  return fetchJson(args.host, args.port, '/api/targets', buildLanAuthHeaders(getConfig().deviceId, secret, 'GET', '/api/targets'))
+  const transport = await chooseTransport(peerId, args.host, args.port)
+  if (!transport) throw new Error('Device is not reachable')
+  if (transport.kind === 'relay') return relayClient.getTargets(peerId)
+  return fetchJson(transport.host, transport.port, '/api/targets', buildLanAuthHeaders(getConfig().deviceId, transport.secret, 'GET', '/api/targets'))
 })
 
 ipcMain.handle(
@@ -475,19 +495,21 @@ ipcMain.handle(
   async (_e, args: { host: string; port: number; folderId: string; destRelPath: string; localFilePaths: string[] }) => {
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
     const peerId = peer?.id || args.host
-    const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
+    const transport = await chooseTransport(peerId, args.host, args.port)
+    if (!transport) throw new Error('Device is not reachable')
+    if (transport.kind === 'relay') return relayClient.push(peerId, args.folderId, args.destRelPath || '', args.localFilePaths)
     for (const filePath of args.localFilePaths) {
       const transferId = randomUUID()
       try {
         await pushFile(
-          args.host,
-          args.port,
+          transport.host,
+          transport.port,
           args.folderId,
           args.destRelPath || '',
           filePath,
           transferId,
           getConfig().deviceId,
-          secret,
+          transport.secret,
           (p) => sendProgress({ ...p, peerId })
         )
         recordHistory({
@@ -522,19 +544,21 @@ ipcMain.handle(
     const cfg = getConfig()
     const destFolder = cfg.sharedFolders.find((f) => f.id === args.destFolderId)
     if (!destFolder) throw new Error('Unknown destination folder')
-    const transferId = randomUUID()
     const peer = currentPeers.find((p) => p.host === args.host && p.port === args.port)
     const peerId = peer?.id || args.host
-    const secret = await ensurePairedWithPeer(peerId, args.host, args.port)
+    const transport = await chooseTransport(peerId, args.host, args.port)
+    if (!transport) throw new Error('Device is not reachable')
+    if (transport.kind === 'relay') return relayClient.pullFile(peerId, args.folderId, args.remoteRelPath, destFolder.path)
+    const transferId = randomUUID()
     const result = await pullFile(
-      args.host,
-      args.port,
+      transport.host,
+      transport.port,
       args.folderId,
       args.remoteRelPath,
       destFolder.path,
       transferId,
       cfg.deviceId,
-      secret,
+      transport.secret,
       (p) => sendProgress({ ...p, peerId })
     )
     recordHistory({

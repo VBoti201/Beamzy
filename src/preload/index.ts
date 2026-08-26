@@ -39,9 +39,6 @@ const api = {
   relayApprovePairing: (args: unknown) => ipcRenderer.invoke('relay:pairing-approve', args),
   relayRejectPairing: (args: unknown) => ipcRenderer.invoke('relay:pairing-reject', args),
   relayKickDevice: (args: unknown) => ipcRenderer.invoke('relay:kick-device', args),
-  lanApproveDevice: (args: unknown) => ipcRenderer.invoke('lan:approve-device', args),
-  lanRejectDevice: (args: unknown) => ipcRenderer.invoke('lan:reject-device', args),
-  lanForgetDevice: (args: unknown) => ipcRenderer.invoke('lan:forget-device', args),
   onPairingRequest: (cb: (req: unknown) => void) => {
     const listener = (_e: unknown, req: unknown): void => cb(req)
     ipcRenderer.on('relay:pairing-request', listener)

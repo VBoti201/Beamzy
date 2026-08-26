@@ -11,7 +11,11 @@ function platformIcon(platform?: string): string | null {
   return null
 }
 
-const EMPTY_MESSAGES = ['Searching your network…', 'Open Beamzy on the other device', 'Or pair with a code in Settings']
+const EMPTY_MESSAGES = [
+  'Pair with a code in Settings',
+  'Open Beamzy on the other device to get its code',
+  "Once paired, it'll show up here automatically"
+]
 
 function EmptyStateMessage(): JSX.Element {
   const [i, setI] = useState(0)
@@ -145,8 +149,7 @@ export default function PeerList({
               title="Disconnect this device"
               onClick={(e) => {
                 e.stopPropagation()
-                if (p.transport === 'relay') window.api.relayKickDevice({ deviceId: p.id })
-                else window.api.lanForgetDevice({ deviceId: p.id })
+                window.api.relayKickDevice({ deviceId: p.id })
               }}
             >
               <TrashIcon size={13} />
