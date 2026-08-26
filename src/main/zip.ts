@@ -1,4 +1,3 @@
-import { ZipArchive } from 'archiver'
 import fs from 'fs'
 import { app } from 'electron'
 import path from 'path'
@@ -12,7 +11,16 @@ import path from 'path'
 // entire main process (freezing all IPC and every other in-flight transfer)
 // and can spike memory heavily for a folder with large files in it.
 // archiver reads and compresses incrementally, so neither happens.
-export function zipDirectory(dirPath: string): Promise<string> {
+//
+// archiver ships as an ESM-only package (package.json "type": "module",
+// no CJS entry) while this main process bundle is CommonJS — a top-level
+// `import`/`require` of it gets compiled to a plain require() that throws
+// ERR_REQUIRE_ESM the instant the app launches, before any window is even
+// created (crashes on every platform, not just some). A dynamic import()
+// works from CommonJS regardless, so it's loaded lazily here instead, only
+// when a folder actually needs zipping.
+export async function zipDirectory(dirPath: string): Promise<string> {
+  const { ZipArchive } = await import('archiver')
   return new Promise((resolve, reject) => {
     const name = path.basename(dirPath)
     const dest = path.join(app.getPath('temp'), `${name}-${Date.now()}.zip`)
